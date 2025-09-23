@@ -1,6 +1,6 @@
 {
   "name": "@udx/worker-deployment",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Simple tool to deploy worker based container",
   "main": "init.sh",
   "bin": {

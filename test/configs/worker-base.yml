@@ -1,0 +1,25 @@
+---
+kind: workerDeployConfig
+version: udx.io/worker-v1/deploy
+config:
+  # Base UDX Worker image
+  image: "usabilitydynamics/udx-worker:latest"
+
+  # Environment variables to pass to container
+  env:
+    TEST_ENV: "base-worker"
+    WORKER_TYPE: "base"
+    DEBUG: "true"
+
+  # Volume mappings (source:destination format)
+  volumes:
+    - "./test/scripts:/github/workspace/scripts"
+    - "./test/data:/github/workspace/data"
+
+  # Command to run inside container
+  command: "/github/workspace/scripts/test-base.sh"
+
+  # Additional arguments to pass to the command
+  args:
+    - "--verbose"
+    - "--test-mode"

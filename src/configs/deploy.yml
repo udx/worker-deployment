@@ -1,0 +1,21 @@
+---
+kind: workerDeployConfig
+version: udx.io/worker-v1/deploy
+config:
+  # Docker image to use
+  image: "usabilitydynamics/udx-worker-tooling:latest"
+
+  # Environment variables to pass to container
+  env:
+    CREATED: "2025-02-21T07:57:59Z"
+
+  # Volume mappings (source:destination format)
+  volumes:
+    - "./README.md:/home/udx/README.md"
+
+  # Command to run inside container
+  command: "ls -la"
+
+  # Additional arguments to pass to the command
+  args:
+    - "/home/udx/outputs"

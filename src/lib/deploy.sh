@@ -42,17 +42,21 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 PKG_DIR="${SCRIPT_DIR}/.."
 
 # Resolve makefile
-MK="$PKG_DIR/src/make/deploy.mk"
+MK="$PKG_DIR/make/deploy.mk"
 
-# Default configuration file
-CONFIG_FILE="${PKG_DIR}/src/configs/deploy.yml"
+# Default configuration file - look in current working directory first
+CONFIG_FILE="$(pwd)/deploy.yml"
+# Fallback to package template if not found
+if [[ ! -f "$CONFIG_FILE" ]]; then
+    CONFIG_FILE="${PKG_DIR}/configs/deploy.yml"
+fi
 
 # Function to show help
 show_help() {
     echo "Usage: $0 [OPTIONS] [TARGET]"
     echo ""
     echo "Options:"
-    echo "  --config=FILE     Use custom config file (default: src/configs/deploy.yml)"
+    echo "  --config=FILE     Use custom config file (default: ./deploy.yml)"
     echo "  --help           Show this help"
     echo ""
     echo "Targets:"
@@ -67,7 +71,7 @@ show_help() {
 
 # Parse command line arguments
 target="run"
-config_file="$CONFIG_FILE"
+config_file=""
 make_args=()
 
 for arg in "$@"; do
@@ -76,11 +80,10 @@ for arg in "$@"; do
             config_file="${arg#*=}"
             # Convert relative path to absolute
             if [[ "$config_file" == ./* ]]; then
-                config_file="$(cd "$PKG_DIR" && pwd)/${config_file#./}"
+                config_file="$(pwd)/${config_file#./}"
             elif [[ "$config_file" != /* ]]; then
                 config_file="$(pwd)/$config_file"
             fi
-            make_args+=("CONFIG_FILE=$config_file")
             ;;
         --help)
             show_help
@@ -96,6 +99,13 @@ for arg in "$@"; do
             ;;
     esac
 done
+
+# Use default config file if none specified
+if [[ -z "$config_file" ]]; then
+    config_file="$CONFIG_FILE"
+fi
+
+make_args+=("CONFIG_FILE=$config_file")
 
 # Check dependencies
 check_yq

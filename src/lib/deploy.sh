@@ -42,13 +42,13 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 PKG_DIR="${SCRIPT_DIR}/.."
 
 # Resolve makefile
-MK="$PKG_DIR/src/make/deploy.mk"
+MK="$PKG_DIR/make/deploy.mk"
 
 # Default configuration file - look in current working directory first
 CONFIG_FILE="$(pwd)/deploy.yml"
 # Fallback to package template if not found
 if [[ ! -f "$CONFIG_FILE" ]]; then
-    CONFIG_FILE="${PKG_DIR}/src/configs/deploy.yml"
+    CONFIG_FILE="${PKG_DIR}/configs/deploy.yml"
 fi
 
 # Function to show help

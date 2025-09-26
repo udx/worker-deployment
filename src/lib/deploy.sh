@@ -29,6 +29,21 @@ check_yq() {
     fi
 }
 
+# Function to check if Docker is available and running
+check_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        printf "${ERROR}Error: Docker is not installed${NC}\n" >&2
+        printf "${INFO}Install Docker from: https://docs.docker.com/get-docker/${NC}\n" >&2
+        exit 1
+    fi
+    
+    if ! docker info >/dev/null 2>&1; then
+        printf "${ERROR}Error: Docker is not running${NC}\n" >&2
+        printf "${INFO}Start Docker Desktop or run: sudo systemctl start docker${NC}\n" >&2
+        exit 1
+    fi
+}
+
 # Resolve script directory
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 while [ -L "$SCRIPT_PATH" ]; do
@@ -44,11 +59,14 @@ PKG_DIR="${SCRIPT_DIR}/.."
 # Resolve makefile
 MK="$PKG_DIR/make/deploy.mk"
 
-# Default configuration file - look in current working directory first
-CONFIG_FILE="$(pwd)/deploy.yml"
-# Fallback to package template if not found
-if [[ ! -f "$CONFIG_FILE" ]]; then
-    CONFIG_FILE="${PKG_DIR}/configs/deploy.yml"
+# Default configuration file - look in current working directory only
+# Check for both .yml and .yaml extensions
+if [[ -f "$(pwd)/deploy.yml" ]]; then
+    CONFIG_FILE="$(pwd)/deploy.yml"
+elif [[ -f "$(pwd)/deploy.yaml" ]]; then
+    CONFIG_FILE="$(pwd)/deploy.yaml"
+else
+    CONFIG_FILE="$(pwd)/deploy.yml"  # Default for error messages
 fi
 
 # Function to show help
@@ -56,7 +74,8 @@ show_help() {
     echo "Usage: $0 [OPTIONS] [TARGET]"
     echo ""
     echo "Options:"
-    echo "  --config=FILE     Use custom config file (default: ./deploy.yml)"
+    echo "  --config=FILE     Use custom config file (default: ./deploy.yml or ./deploy.yaml)"
+    echo "  --dry-run         Show what would be executed without running it"
     echo "  --help           Show this help"
     echo ""
     echo "Targets:"
@@ -67,11 +86,13 @@ show_help() {
     echo "  $0                              # Run deployment with default config"
     echo "  $0 run-it                       # Run deployment interactively"
     echo "  $0 --config=my-config.yml      # Use custom config file"
+    echo "  $0 --dry-run                    # Show what would be executed"
 }
 
 # Parse command line arguments
 target="run"
 config_file=""
+dry_run=false
 make_args=()
 
 for arg in "$@"; do
@@ -84,6 +105,9 @@ for arg in "$@"; do
             elif [[ "$config_file" != /* ]]; then
                 config_file="$(pwd)/$config_file"
             fi
+            ;;
+        --dry-run)
+            dry_run=true
             ;;
         --help)
             show_help
@@ -107,8 +131,14 @@ fi
 
 make_args+=("CONFIG_FILE=$config_file")
 
+# Add dry-run flag if specified
+if [[ "$dry_run" == true ]]; then
+    make_args+=("DRY_RUN=true")
+fi
+
 # Check dependencies
 check_yq
+check_docker
 
 # Verify config file exists
 if [[ ! -f "$config_file" ]]; then
@@ -123,6 +153,17 @@ printf "${INFO}Using configuration: $config_file${NC}\n"
 WORKER_IMAGE=$(yq eval '.config.image' "$config_file")
 COMMAND=$(yq eval '.config.command' "$config_file")
 
+# Validate required fields
+if [[ "$WORKER_IMAGE" == "null" || -z "$WORKER_IMAGE" ]]; then
+    printf "${ERROR}Error: 'config.image' is required in configuration file${NC}\n" >&2
+    exit 1
+fi
+
+if [[ "$COMMAND" == "null" || -z "$COMMAND" ]]; then
+    printf "${ERROR}Error: 'config.command' is required in configuration file${NC}\n" >&2
+    exit 1
+fi
+
 # Build volumes from config
 VOLUMES=""
 volume_count=$(yq eval '.config.volumes | length' "$config_file")
@@ -132,7 +173,12 @@ for ((i=0; i<volume_count; i++)); do
     if [[ "$volume" == ./* ]]; then
         src_path="${volume%%:*}"
         dest_path="${volume#*:}"
-        volume="$(cd "$PKG_DIR" && pwd)/${src_path#./}:$dest_path"
+        volume="$(pwd)/${src_path#./}:$dest_path"
+    elif [[ "$volume" != /* ]] && [[ "$volume" == *:* ]]; then
+        # Handle relative paths that don't start with ./
+        src_path="${volume%%:*}"
+        dest_path="${volume#*:}"
+        volume="$(pwd)/$src_path:$dest_path"
     fi
     VOLUMES="$VOLUMES -v $volume"
 done

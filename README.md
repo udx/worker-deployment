@@ -1,20 +1,14 @@
 # Worker Deploy
 
-Dynamic Docker deployment tool with YAML configuration support.
-
-- Configurable Docker container deployment
-- YAML-based configuration management
-- Automatic credential detection and mounting
-- Support for Terraform workflows
+Run Docker containers with simple YAML configuration and automatic GCP authentication.
 
 ## Features
 
-- ✅ **YAML Configuration** - Structured configuration with validation
-- ✅ **Config Generation** - Built-in template generator
-- ✅ **Dynamic Volume Mounting** - Configurable volume mappings
-- ✅ **Credential Auto-Detection** - Automatic GCP credential mounting
-- ✅ **Environment Variables** - Configurable environment variable injection
-- ✅ **Terraform Integration** - Built-in support for terraform plan/apply workflows
+- 🚀 **Simple Setup** - Generate config template and run
+- 🔐 **GCP Authentication** - Automatic credential detection and mounting
+- 📁 **File Mounting** - Mount your local files into containers
+- 🔧 **Environment Variables** - Pass environment variables to containers
+- 💻 **Interactive Mode** - Run containers interactively for debugging
 
 ## Installation
 
@@ -22,45 +16,68 @@ Dynamic Docker deployment tool with YAML configuration support.
 npm install -g @udx/worker-deployment
 ```
 
-## Usage
-
-### Quick Start
+## Quick Start
 
 ```bash
 # 1. Generate config template
 worker-deploy-config
 
-# 2. Edit deploy.yml with your deployment details
+# 2. Edit deploy.yml with your settings
 
-# 3. Run deployment
+# 3. Run your container
 worker-deploy-run
-
-# 4. Run deployment interactively
-worker-deploy-run run-it
 ```
 
-### Commands
+## GCP Authentication
 
-| Command                                        | Description                             |
-| ---------------------------------------------- | --------------------------------------- |
-| `worker-deploy-config`                         | Generate `deploy.yml` config template   |
-| `worker-deploy-config --output=my-config.yml`  | Generate custom config file             |
-| `worker-deploy tf-plan`                        | Run terraform plan with default config  |
-| `worker-deploy tf-apply`                       | Run terraform apply with default config |
-| `worker-deploy --config=my-config.yml tf-plan` | Use custom config file                  |
-| `worker-deploy --help`                         | Show help information                   |
+The tool automatically detects and uses your GCP credentials in priority order:
 
-### Configuration
+### Option 1: Service Account Key
 
-The tool uses a YAML configuration file (`deploy.yml`) to define:
+Place a service account JSON key file in your project directory:
 
-- Docker image and workspace settings
-- Volume mappings for your project files
-- Environment variables
-- GCP credential paths
-- Command arguments
+```bash
+# Name it:
+gcp-key.json
+```
 
-**Example Configuration:**
+This mounts as `/home/udx/gcp-key.json` with `GCP_CREDS` environment variable.
+
+### Option 2: Token Credentials
+
+Place token-based credentials in your project directory:
+
+```bash
+# Name it:
+gcp-credentials.json
+```
+
+This mounts as `/home/udx/gcp-creds.json` with `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+
+### Option 3: Local gcloud Authentication (Fallback)
+
+If no credential files are found, your local gcloud authentication is shared:
+
+```bash
+# Your existing gcloud auth is automatically used
+# No setup needed if you're already authenticated locally
+```
+
+This mounts `~/.config/gcloud` to `/root/.config/gcloud` in the container, sharing your local gcloud session.
+
+## Commands
+
+| Command                                    | Description                                 |
+| ------------------------------------------ | ------------------------------------------- |
+| `worker-deploy-config`                     | Generate config template                    |
+| `worker-deploy-run`                        | Run container                               |
+| `worker-deploy-run run-it`                 | Run container interactively                 |
+| `worker-deploy-run --config=my-config.yml` | Use custom config file                      |
+| `worker-deploy-run --dry-run`              | Show what would be executed without running |
+
+## Configuration
+
+Edit the generated `deploy.yml` file:
 
 ```yaml
 ---
@@ -70,67 +87,63 @@ config:
   # Docker image to use
   image: "usabilitydynamics/udx-worker-tooling:latest"
 
-  # Working directory inside container
-  workspace: "/github/workspace"
-
-  # Environment variables to pass to container
-  env:
-    PLAN_ONLY: "true"
-    ARTIFACTS_PATH: "/github/workspace/outputs"
-
-  # Volume mappings (source:destination format)
+  # Mount your files into the container
   volumes:
-    - "./src/lib/deploy.sh:/github/workspace/deploy.sh"
-    - "./terraform:/github/workspace/terraform"
+    - "./src:/workspace/src" # Mount src folder
+    - "./data:/workspace/data" # Mount data folder
 
-  # Command to run inside container
-  command: 'bash -c "chmod +x /github/workspace/deploy.sh && /github/workspace/deploy.sh"'
+  # Set environment variables
+  env:
+    DEBUG: "true"
+    PROJECT_NAME: "my-project"
 
-  # Additional arguments to pass to the command
-  args:
-    - "true"
-    - "/github/workspace/outputs"
+  # Command to run
+  command: "bash /workspace/src/my-script.sh"
 ```
-
-## Configuration Schema
-
-| Field              | Required | Description                    | Example                                       |
-| ------------------ | -------- | ------------------------------ | --------------------------------------------- |
-| `config.image`     | ✅       | Docker image to use            | `usabilitydynamics/udx-worker-tooling:latest` |
-| `config.workspace` | ✅       | Working directory in container | `/github/workspace`                           |
-| `config.env`       | ❌       | Environment variables          | `{"PLAN_ONLY": "true"}`                       |
-| `config.volumes`   | ✅       | Volume mappings                | `["./terraform:/workspace/terraform"]`        |
-| `config.command`   | ✅       | Command to run in container    | `bash -c "terraform plan"`                    |
-| `config.args`      | ❌       | Additional command arguments   | `["--auto-approve"]`                          |
 
 ## Examples
 
-### Basic Terraform Deployment
+### Run a Python Script with GCP Access
 
-```bash
-# Generate config
-worker-deploy-config
-
-# Edit deploy.yml with your project paths
-
-# Deploy the worker container
-worker-deploy-run
+```yaml
+config:
+  image: "python:3.9"
+  volumes:
+    - "./my-script.py:/app/script.py"
+    - "./requirements.txt:/app/requirements.txt"
+  command: "pip install -r /app/requirements.txt && python /app/script.py"
 ```
 
-### Custom Configuration
+### Run Terraform with Your Code
+
+```yaml
+config:
+  image: "hashicorp/terraform:latest"
+  volumes:
+    - "./terraform:/workspace"
+  env:
+    TF_VAR_project_id: "my-gcp-project"
+  command: "terraform init && terraform plan"
+```
+
+### Test Configuration Before Running
 
 ```bash
-# Generate custom config
-worker-deploy-config --output=production.yml
+# Test your configuration without executing
+worker-deploy-run --dry-run
+```
 
-# Use custom config
-worker-deploy-run --config=production.yml
+### Interactive Debugging Session
+
+```bash
+# Run container with shell access
+worker-deploy-run run-it
 ```
 
 ## Prerequisites
 
 - **Docker** - Must be installed and running
-- **yq** - Required for YAML processing (install with `brew install yq`)
+- **yq** - Install with `brew install yq` (macOS) or `apt install yq` (Linux)
 
 ## License
 

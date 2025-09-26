@@ -1,7 +1,7 @@
 {
   "name": "@udx/worker-deployment",
   "version": "0.0.6",
-  "description": "Simple tool to deploy worker based container",
+  "description": "Simple Docker container deployment tool with YAML configuration and automatic GCP authentication",
   "main": "init.sh",
   "bin": {
     "worker-deploy-config": "src/lib/config.sh",
@@ -12,9 +12,14 @@
     "release": "./release.sh"
   },
   "keywords": [
-    "worker",
+    "docker",
     "deployment",
-    "docker"
+    "container",
+    "yaml",
+    "gcp",
+    "worker",
+    "automation",
+    "devops"
   ],
   "files": [
     "src/*",

@@ -169,17 +169,30 @@ VOLUMES=""
 volume_count=$(yq eval '.config.volumes | length' "$config_file")
 for ((i=0; i<volume_count; i++)); do
     volume=$(yq eval ".config.volumes[$i]" "$config_file")
+    
+    # Extract source and destination paths
+    src_path="${volume%%:*}"
+    dest_path="${volume#*:}"
+    
+    # Expand shell variables like $(PWD)
+    src_path=$(eval echo "$src_path")
+    
     # Convert relative paths to absolute
-    if [[ "$volume" == ./* ]]; then
-        src_path="${volume%%:*}"
-        dest_path="${volume#*:}"
-        volume="$(pwd)/${src_path#./}:$dest_path"
-    elif [[ "$volume" != /* ]] && [[ "$volume" == *:* ]]; then
+    if [[ "$src_path" == ./* ]]; then
+        src_path="$(pwd)/${src_path#./}"
+    elif [[ "$src_path" != /* ]]; then
         # Handle relative paths that don't start with ./
-        src_path="${volume%%:*}"
-        dest_path="${volume#*:}"
-        volume="$(pwd)/$src_path:$dest_path"
+        src_path="$(pwd)/$src_path"
     fi
+    
+    # Validate that source path exists
+    if [[ ! -e "$src_path" ]]; then
+        printf "${ERROR}Error: Volume source path does not exist: $src_path${NC}\n" >&2
+        exit 1
+    fi
+    
+    # Reconstruct the volume mapping
+    volume="$src_path:$dest_path"
     VOLUMES="$VOLUMES -v $volume"
 done
 

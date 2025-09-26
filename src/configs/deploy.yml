@@ -14,9 +14,11 @@ config:
 
   # Volume mappings (source:destination format)
   # Mount your local files/folders into the container
+  # You can use $(PWD) for current directory or relative/absolute paths
   volumes:
-    - "./src:/workspace/src"           # Mount source code
-    - "./data:/workspace/data"         # Mount data files
+    - "./src:/workspace/src"           # Mount source code directory
+    - "./data:/workspace/data"         # Mount data files directory
+    # - "$(PWD)/script.sh:/workspace/script.sh"  # Mount single file
     # - "./config:/workspace/config"   # Uncomment to mount config files
 
   # Command to run inside container

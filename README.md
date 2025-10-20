@@ -1,14 +1,15 @@
 # Worker Deploy
 
-Run any Docker container with simple YAML configuration and automatic GCP credential mounting.
+**Run any Docker container with automatic cloud authentication.**
 
-## Features
+Simple YAML configuration + automatic GCP credential detection = zero-config deployments.
 
-- 🚀 **Simple Setup** - Generate config template and run
-- 🔐 **GCP Authentication** - Automatic credential detection and mounting
-- 📁 **File Mounting** - Mount your local files into containers
-- 🔧 **Environment Variables** - Pass environment variables to containers
-- 💻 **Interactive Mode** - Run containers interactively for debugging
+## Why Use This?
+
+- ✅ **Zero Config** - Automatically detects and uses your existing gcloud credentials
+- ✅ **Works Everywhere** - Local dev, CI/CD, production
+- ✅ **Any Docker Image** - Python, Terraform, Node.js, your custom images
+- ✅ **Secure** - Read-only mounts, no credential copying
 
 ## Installation
 
@@ -19,83 +20,65 @@ npm install -g @udx/worker-deployment
 ## Quick Start
 
 ```bash
-# 1. Generate config template
+# Install
+npm install -g @udx/worker-deployment
+
+# Generate config
 worker-config
 
-# 2. Edit deploy.yml with your settings
-
-# 3. Run your container
+# Edit deploy.yml, then run
 worker-run
 ```
 
-## GCP Authentication
+**That's it!** The tool automatically detects your GCP credentials.
 
-The tool automatically detects and uses your GCP credentials in priority order. All methods set **both** `GOOGLE_APPLICATION_CREDENTIALS` (standard) and `GCP_CREDS` (UDX-specific) environment variables.
+## GCP Authentication (Automatic)
 
-### Option 1: Service Account Key
+The tool automatically finds and uses your GCP credentials. **No manual setup required!**
 
-Place a service account JSON key file in your project directory:
+### For Local Development
 
-```bash
-# Name it:
-gcp-key.json
-```
-
-**What it does:**
-- Mounts the file to `/tmp/gcp-key.json` in the container
-- Sets `GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json` (for standard Google SDKs, Terraform, gcloud)
-- Sets `GCP_CREDS=/tmp/gcp-key.json` (for UDX workers)
-
-**Works with:** ✅ gcloud CLI, ✅ Terraform, ✅ All Google SDKs, ✅ UDX workers
-
-### Option 2: Token Credentials
-
-Place token-based credentials (e.g., Application Default Credentials) in your project directory:
+If you're already using `gcloud`, you're done:
 
 ```bash
-# Name it:
-gcp-credentials.json
-
-# Or copy your local ADC:
-cp ~/.config/gcloud/application_default_credentials.json ./gcp-credentials.json
-```
-
-**What it does:**
-- Mounts the file to `/tmp/gcp-creds.json` in the container
-- Sets `GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json` (for standard Google SDKs, Terraform, gcloud)
-- Sets `GCP_CREDS=/tmp/gcp-creds.json` (for UDX workers)
-
-**Works with:** ✅ gcloud CLI, ✅ Terraform, ✅ All Google SDKs, ✅ UDX workers
-
-### Option 3: Local gcloud Config (Development)
-
-If no credential files are found, your local gcloud configuration is mounted:
-
-```bash
-# Authenticate with gcloud
 gcloud auth login
 gcloud auth application-default login
 ```
 
-**What it does:**
-- Mounts `~/.config/gcloud` to `/root/.config/gcloud` (read-only)
-- Sets `CLOUDSDK_CONFIG=/root/.config/gcloud` (for gcloud CLI)
-- Sets `GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json` (for SDKs/Terraform)
+The tool automatically mounts your `~/.config/gcloud` directory.
 
-**Works with:** ✅ gcloud CLI, ✅ Terraform, ✅ All Google SDKs
+### For Production/CI/CD
 
-**Note:** This is best for local development. For production or CI/CD, use Option 1 or 2.
+Drop a credential file in your project directory:
+
+```bash
+# Service account key (recommended)
+gcp-key.json
+
+# OR token/ADC file
+gcp-credentials.json
+```
+
+The tool automatically detects and mounts it.
+
+### Detection Priority
+
+1. `gcp-key.json` in current or config directory
+2. `gcp-credentials.json` in current or config directory  
+3. `~/.config/gcloud` (local gcloud auth)
+
+**All standard GCP tools work:** gcloud CLI, Terraform, Python/Node.js/Go SDKs, etc.
 
 ## Commands
 
-| Command                           | Description                                 |
-| --------------------------------- | ------------------------------------------- |
-| `worker-auth`                     | Setup GCP authentication (interactive)      |
-| `worker-config`                   | Generate config template                    |
-| `worker-run`                      | Run container                               |
-| `worker-run run-it`               | Run container interactively                 |
-| `worker-run --config=my-config.yml` | Use custom config file                      |
-| `worker-run --dry-run`            | Show what would be executed without running |
+```bash
+worker-config                    # Generate config template
+worker-run                       # Run container
+worker-run --dry-run             # Preview without executing
+worker-run run-it                # Interactive mode (shell access)
+worker-run --config=custom.yml   # Use custom config file
+worker-auth-gcp                  # Check GCP auth status
+```
 
 ## Configuration
 
@@ -176,9 +159,16 @@ worker-run run-it
 
 ## Prerequisites
 
-- **Docker** - Must be installed and running
-- **yq** - Install with `brew install yq` (macOS) or `apt install yq` (Linux)
-- **GNU Make** - macOS users: `brew install make` (use `gmake` command)
+```bash
+# Required
+brew install docker yq
+
+# macOS only (GNU Make)
+brew install make
+
+# Optional (for GCP auth)
+brew install google-cloud-sdk
+```
 
 ## License
 

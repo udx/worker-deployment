@@ -54,21 +54,21 @@ gcp-credentials.json
 
 This mounts as `/tmp/gcp-creds.json` with `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 
-### Option 3: Local gcloud Configuration (Fallback)
+### Option 3: Application Default Credentials (Fallback)
 
-If no credential files are found, your local gcloud configuration is mounted:
+If no credential files are found, your local Application Default Credentials are used:
 
 ```bash
 # Authenticate with gcloud
-gcloud auth login
 gcloud auth application-default login
 ```
 
-This mounts your entire `~/.config/gcloud` directory (read-only) and sets both:
-- `CLOUDSDK_CONFIG=/root/.config/gcloud` (for gcloud CLI commands)
-- `GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json` (for SDKs and Terraform)
+This mounts `~/.config/gcloud/application_default_credentials.json` (read-only) and sets `GOOGLE_APPLICATION_CREDENTIALS`, making it compatible with:
+- ✅ Terraform (GCS backend, GCP resources)
+- ✅ Python/Node.js/Go GCP SDKs
+- ✅ Any tool using GCP Application Default Credentials
 
-This makes it compatible with **all** GCP tools: gcloud CLI, Terraform, Python/Node.js/Go SDKs, etc.
+**Note:** For `gcloud` CLI commands inside the container, use Option 1 or 2 (service account key or token credentials) as gcloud needs write access to its config directory.
 
 ## Commands
 

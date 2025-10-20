@@ -24,14 +24,12 @@ else ifneq ($(wildcard $(GCP_CREDS_PATH)),)
   GCP_VOLUME = -v $(GCP_CREDS_PATH):/tmp/gcp-creds.json
   GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json
   CRED_INFO = "🎫 GCP Auth: Token Credentials ($(GCP_CREDS_PATH))"
-else ifneq ($(wildcard $(GCP_DEFAULT_PATH)),)
-  # Mount both the full gcloud config (for gcloud CLI) and ADC file (for SDKs/Terraform)
-  GCP_VOLUME = -v $(GCP_DEFAULT_PATH):/root/.config/gcloud:ro
-  GCP_ENV = -e CLOUDSDK_CONFIG=/root/.config/gcloud
-  ifneq ($(wildcard $(GCP_ADC_PATH)),)
-    GCP_ENV += -e GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
-  endif
-  CRED_INFO = "👤 GCP Auth: Local gcloud config (~/.config/gcloud)"
+else ifneq ($(wildcard $(GCP_ADC_PATH)),)
+  # Mount only the ADC file for local auth (gcloud needs write access to config dir)
+  GCP_VOLUME = -v $(GCP_ADC_PATH):/tmp/application_default_credentials.json:ro
+  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/application_default_credentials.json
+  GCP_ENV += -e CLOUDSDK_CORE_DISABLE_FILE_LOGGING=true
+  CRED_INFO = "👤 GCP Auth: Application Default Credentials (~/.config/gcloud/application_default_credentials.json)"
 else
   GCP_VOLUME = 
   GCP_ENV = 

@@ -32,44 +32,66 @@ worker-run
 
 **That's it!** The tool automatically detects your GCP credentials.
 
-## GCP Authentication (Automatic)
+## GCP Authentication
 
-The tool automatically finds and uses your GCP credentials. **No manual setup required!**
+The tool uses **service account keys** for authentication. This works everywhere: local development, CI/CD, and production.
 
 ### For Local Development
 
-**Already using gcloud?** You're done! The tool automatically uses your existing credentials.
-
-If you haven't authenticated yet, run these once:
+Create a service account key and save it as `gcp-key.json`:
 
 ```bash
-gcloud auth login                        # Authenticate your user
-gcloud auth application-default login    # Create ADC for Terraform/SDKs
+# 1. Create a service account (one-time)
+gcloud iam service-accounts create dev-worker \
+  --display-name="Local Development Worker"
+
+# 2. Grant necessary permissions
+gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+  --member="serviceAccount:dev-worker@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/editor"
+
+# 3. Create and download key
+gcloud iam service-accounts keys create gcp-key.json \
+  --iam-account=dev-worker@YOUR_PROJECT_ID.iam.gserviceaccount.com
+
+# 4. Run your container
+worker-run
 ```
 
-Then `worker-run` automatically mounts your `~/.config/gcloud` directory.
+**Security tip:** Add `gcp-key.json` to `.gitignore` and delete the key from Google Cloud when done.
 
-### For Production/CI/CD
+### For GitHub Actions (Workload Identity)
 
-Drop a credential file in your project directory:
+Use keyless authentication with Workload Identity Federation:
 
-```bash
-# Service account key (recommended)
-gcp-key.json
+```yaml
+- name: Authenticate to Google Cloud
+  id: auth
+  uses: google-github-actions/auth@v3
+  with:
+    workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+    service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
-# OR token/ADC file
-gcp-credentials.json
+- name: Deploy
+  run: |
+    # Copy the generated credentials to gcp-credentials.json
+    cp ${{ steps.auth.outputs.credentials_file_path }} gcp-credentials.json
+    worker-run
 ```
 
-The tool automatically detects and mounts it.
+**File naming:**
+- `gcp-key.json` → Local development (service account key)
+- `gcp-credentials.json` → GitHub Actions (Workload Identity token)
 
-### Detection Priority
+### Why Service Account Keys?
 
-1. `gcp-key.json` in current or config directory
-2. `gcp-credentials.json` in current or config directory  
-3. `~/.config/gcloud` (local gcloud auth)
+**UID/GID Mismatch Issue:** Mounting local user credentials (`~/.config/gcloud`) doesn't work when the container runs as a non-root user (UID 500) because the host files are owned by a different UID (e.g., 501). This causes permission denied errors.
 
-**All standard GCP tools work:** gcloud CLI, Terraform, Python/Node.js/Go SDKs, etc.
+**Service account keys work because:**
+- ✅ File is copied/created with correct ownership
+- ✅ Works with both `gcloud` CLI and Terraform
+- ✅ Same approach for local dev and CI/CD
+- ✅ Can be easily rotated and revoked
 
 ## Commands
 

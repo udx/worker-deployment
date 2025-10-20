@@ -145,14 +145,14 @@ check_yq
 check_docker
 
 # Auto-copy ADC to gcp-key.json if no credentials exist
-if [[ ! -f "gcp-key.json" ]] && [[ ! -f "gcp-credentials.json" ]]; then
-    ADC_PATH="$HOME/.config/gcloud/application_default_credentials.json"
-    if [[ -f "$ADC_PATH" ]]; then
-        printf "${INFO}No credential files found. Using local ADC...${NC}\n"
-        cp "$ADC_PATH" "gcp-key.json"
-        printf "${OK}✓ Created gcp-key.json from local credentials${NC}\n"
-    fi
-fi
+# if [[ ! -f "gcp-key.json" ]] && [[ ! -f "gcp-credentials.json" ]]; then
+#     ADC_PATH="$HOME/.config/gcloud/application_default_credentials.json"
+#     if [[ -f "$ADC_PATH" ]]; then
+#         printf "${INFO}No credential files found. Using local ADC...${NC}\n"
+#         cp "$ADC_PATH" "gcp-key.json"
+#         printf "${OK}✓ Created gcp-key.json from local credentials${NC}\n"
+#     fi
+# fi
 
 # Verify config file exists
 if [[ ! -f "$config_file" ]]; then

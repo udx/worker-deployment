@@ -1,6 +1,6 @@
 {
   "name": "@udx/worker-deployment",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Simple Docker container deployment tool with YAML configuration and automatic GCP authentication",
   "main": "init.sh",
   "bin": {

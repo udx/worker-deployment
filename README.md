@@ -41,7 +41,7 @@ Place a service account JSON key file in your project directory:
 gcp-key.json
 ```
 
-This mounts as `/home/udx/gcp-key.json` with `GCP_CREDS` environment variable.
+This mounts as `/tmp/gcp-key.json` with `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 
 ### Option 2: Token Credentials
 
@@ -52,18 +52,19 @@ Place token-based credentials in your project directory:
 gcp-credentials.json
 ```
 
-This mounts as `/home/udx/gcp-creds.json` with `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+This mounts as `/tmp/gcp-creds.json` with `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
 
-### Option 3: Local gcloud Authentication (Fallback)
+### Option 3: Application Default Credentials (Fallback)
 
-If no credential files are found, your local gcloud authentication is shared:
+If no credential files are found, your local Application Default Credentials are used:
 
 ```bash
 # Your existing gcloud auth is automatically used
 # No setup needed if you're already authenticated locally
+gcloud auth application-default login
 ```
 
-This mounts `~/.config/gcloud` to `/usr/local/configs/gcloud` in the container, sharing your local gcloud session.
+This mounts `~/.config/gcloud/application_default_credentials.json` with `GOOGLE_APPLICATION_CREDENTIALS` environment variable, making it compatible with all GCP SDKs and tools (Terraform, gcloud, Python, etc.).
 
 ## Commands
 

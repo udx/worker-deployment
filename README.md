@@ -38,14 +38,16 @@ The tool automatically finds and uses your GCP credentials. **No manual setup re
 
 ### For Local Development
 
-If you're already using `gcloud`, you're done:
+**Already using gcloud?** You're done! The tool automatically uses your existing credentials.
+
+If you haven't authenticated yet, run these once:
 
 ```bash
-gcloud auth login
-gcloud auth application-default login
+gcloud auth login                        # Authenticate your user
+gcloud auth application-default login    # Create ADC for Terraform/SDKs
 ```
 
-The tool automatically mounts your `~/.config/gcloud` directory.
+Then `worker-run` automatically mounts your `~/.config/gcloud` directory.
 
 ### For Production/CI/CD
 

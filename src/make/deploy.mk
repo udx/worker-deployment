@@ -9,21 +9,34 @@ ARGS ?=
 DRY_RUN ?= false
 
 # Credential paths for auto-detection
-GCP_KEY_PATH = $(PWD)/gcp-key.json
-GCP_CREDS_PATH = $(PWD)/gcp-credentials.json
+# Check both current directory and config file directory
+CONFIG_DIR ?= $(PWD)
+GCP_KEY_PATH_PWD = $(PWD)/gcp-key.json
+GCP_KEY_PATH_CONFIG = $(CONFIG_DIR)/gcp-key.json
+GCP_CREDS_PATH_PWD = $(PWD)/gcp-credentials.json
+GCP_CREDS_PATH_CONFIG = $(CONFIG_DIR)/gcp-credentials.json
 HOME_DIR = $(shell echo $$HOME)
 GCP_DEFAULT_PATH = $(HOME_DIR)/.config/gcloud
 GCP_ADC_PATH = $(HOME_DIR)/.config/gcloud/application_default_credentials.json
 
 # Add credential volumes and environment variables if they exist
-ifneq ($(wildcard $(GCP_KEY_PATH)),)
-  GCP_VOLUME = -v $(GCP_KEY_PATH):/tmp/gcp-key.json
+# Priority: PWD first, then CONFIG_DIR, then home directory
+ifneq ($(wildcard $(GCP_KEY_PATH_PWD)),)
+  GCP_VOLUME = -v $(GCP_KEY_PATH_PWD):/tmp/gcp-key.json
   GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
-  CRED_INFO = "🔑 GCP Auth: Service Account Key ($(GCP_KEY_PATH))"
-else ifneq ($(wildcard $(GCP_CREDS_PATH)),)
-  GCP_VOLUME = -v $(GCP_CREDS_PATH):/tmp/gcp-creds.json
+  CRED_INFO = "🔑 GCP Auth: Service Account Key ($(GCP_KEY_PATH_PWD))"
+else ifneq ($(wildcard $(GCP_KEY_PATH_CONFIG)),)
+  GCP_VOLUME = -v $(GCP_KEY_PATH_CONFIG):/tmp/gcp-key.json
+  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+  CRED_INFO = "🔑 GCP Auth: Service Account Key ($(GCP_KEY_PATH_CONFIG))"
+else ifneq ($(wildcard $(GCP_CREDS_PATH_PWD)),)
+  GCP_VOLUME = -v $(GCP_CREDS_PATH_PWD):/tmp/gcp-creds.json
   GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json
-  CRED_INFO = "🎫 GCP Auth: Token Credentials ($(GCP_CREDS_PATH))"
+  CRED_INFO = "🎫 GCP Auth: Token Credentials ($(GCP_CREDS_PATH_PWD))"
+else ifneq ($(wildcard $(GCP_CREDS_PATH_CONFIG)),)
+  GCP_VOLUME = -v $(GCP_CREDS_PATH_CONFIG):/tmp/gcp-creds.json
+  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json
+  CRED_INFO = "🎫 GCP Auth: Token Credentials ($(GCP_CREDS_PATH_CONFIG))"
 else ifneq ($(wildcard $(GCP_ADC_PATH)),)
   # Mount only the ADC file for local auth (gcloud needs write access to config dir)
   GCP_VOLUME = -v $(GCP_ADC_PATH):/tmp/application_default_credentials.json:ro

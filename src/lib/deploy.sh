@@ -131,6 +131,10 @@ fi
 
 make_args+=("CONFIG_FILE=$config_file")
 
+# Pass config directory to make for credential detection
+config_dir="$(dirname "$config_file")"
+make_args+=("CONFIG_DIR=$config_dir")
+
 # Add dry-run flag if specified
 if [[ "$dry_run" == true ]]; then
     make_args+=("DRY_RUN=true")

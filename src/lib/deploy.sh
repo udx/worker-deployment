@@ -56,29 +56,6 @@ SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 # Resolve package directory
 PKG_DIR="${SCRIPT_DIR}/.."
 
-# Function to validate if an image is supported
-validate_worker_image() {
-    local image="$1"
-    local image_name="${image%%:*}"  # Remove tag if present
-    
-    # Read supported images from package.json
-    local supported_images=$(node -e "console.log(require('$PKG_DIR/../package.json').config.supportedImages.join('\n'))")
-    
-    while IFS= read -r supported; do
-        if [[ "$image_name" == "$supported" ]]; then
-            return 0
-        fi
-    done <<< "$supported_images"
-    
-    return 1
-}
-
-# Function to list supported images
-list_supported_images() {
-    echo "Supported worker images:"
-    node -e "require('$PKG_DIR/../package.json').config.supportedImages.forEach(img => console.log('  - ' + img))"
-}
-
 # Resolve makefile
 MK="$PKG_DIR/make/deploy.mk"
 
@@ -179,15 +156,6 @@ COMMAND=$(yq eval '.config.command' "$config_file")
 # Validate required fields
 if [[ "$WORKER_IMAGE" == "null" || -z "$WORKER_IMAGE" ]]; then
     printf "${ERROR}Error: 'config.image' is required in configuration file${NC}\n" >&2
-    exit 1
-fi
-
-# Validate worker image is supported
-if ! validate_worker_image "$WORKER_IMAGE"; then
-    printf "${ERROR}Error: Unsupported worker image: $WORKER_IMAGE${NC}\n" >&2
-    printf "${INFO}This tool only supports UDX worker images.${NC}\n" >&2
-    echo ""
-    list_supported_images
     exit 1
 fi
 

@@ -1,6 +1,6 @@
 # Worker Deploy
 
-Run Docker containers with simple YAML configuration and automatic GCP authentication.
+Run any Docker container with simple YAML configuration and automatic GCP credential mounting.
 
 ## Features
 
@@ -101,43 +101,41 @@ config:
   command: "bash /workspace/src/my-script.sh"
 ```
 
-## Supported Images
-
-This tool only supports UDX worker images:
-
-- `usabilitydynamics/rabbit-automation-action`
-- `usabilitydynamics/udx-worker-engine`
-- `usabilitydynamics/udx-worker-site`
-- `usabilitydynamics/udx-worker-nodejs`
-- `usabilitydynamics/udx-worker-php`
-- `usabilitydynamics/udx-worker`
-- `usabilitydynamics/udx-worker-tooling`
-
 ## Examples
 
-### Run a Node.js Worker
+### Run a Python Script with GCP Access
 
 ```yaml
 config:
-  image: "usabilitydynamics/udx-worker-nodejs:latest"
+  image: "python:3.9"
   volumes:
-    - "./src:/workspace/src"
-  env:
-    NODE_ENV: "production"
-  command: "node /workspace/src/index.js"
+    - "./my-script.py:/app/script.py"
+    - "./requirements.txt:/app/requirements.txt"
+  command: "pip install -r /app/requirements.txt && python /app/script.py"
 ```
 
-### Run PHP Worker with Data Processing
+### Run Terraform with GCP Credentials
 
 ```yaml
 config:
-  image: "usabilitydynamics/udx-worker-php:latest"
+  image: "hashicorp/terraform:latest"
   volumes:
-    - "./scripts:/workspace/scripts"
-    - "./data:/workspace/data"
+    - "./terraform:/workspace"
+  env:
+    TF_VAR_project_id: "my-gcp-project"
+  command: "terraform init && terraform plan"
+```
+
+### Run UDX Worker
+
+```yaml
+config:
+  image: "usabilitydynamics/udx-worker:latest"
+  volumes:
+    - "./:/workspace"
   env:
     DEBUG: "true"
-  command: "php /workspace/scripts/process.php"
+  command: "worker run my-task"
 ```
 
 ### Test Configuration Before Running

@@ -1,11 +1,11 @@
 {
   "name": "@udx/worker-deployment",
-  "version": "0.0.8",
+  "version": "1.0.0",
   "description": "Simple Docker container deployment tool with YAML configuration and automatic GCP authentication",
   "main": "init.sh",
   "bin": {
-    "worker-deploy-config": "src/lib/config.sh",
-    "worker-deploy-run": "src/lib/deploy.sh"
+    "worker-config": "src/lib/config.sh",
+    "worker-run": "src/lib/deploy.sh"
   },
   "scripts": {
     "test": "cd test && ./index.sh",
@@ -22,7 +22,7 @@
     "devops"
   ],
   "files": [
-    "src/*",
+    "src/",
     "README.md"
   ],
   "author": "UDX",
@@ -38,6 +38,17 @@
     "darwin",
     "linux"
   ],
+  "config": {
+    "supportedImages": [
+      "usabilitydynamics/rabbit-automation-action",
+      "usabilitydynamics/udx-worker-engine",
+      "usabilitydynamics/udx-worker-site",
+      "usabilitydynamics/udx-worker-nodejs",
+      "usabilitydynamics/udx-worker-php",
+      "usabilitydynamics/udx-worker",
+      "usabilitydynamics/udx-worker-tooling"
+    ]
+  },
   "dependencies": {},
   "devDependencies": {}
 }

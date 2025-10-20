@@ -11,7 +11,8 @@ DRY_RUN ?= false
 # Credential paths for auto-detection
 GCP_KEY_PATH = $(PWD)/gcp-key.json
 GCP_CREDS_PATH = $(PWD)/gcp-credentials.json
-GCP_DEFAULT_PATH = ~/.config/gcloud
+HOME_DIR = $(shell echo $$HOME)
+GCP_DEFAULT_PATH = $(HOME_DIR)/.config/gcloud
 
 # Add credential volumes and environment variables if they exist
 ifneq ($(wildcard $(GCP_KEY_PATH)),)
@@ -22,10 +23,14 @@ else ifneq ($(wildcard $(GCP_CREDS_PATH)),)
   GCP_VOLUME = -v $(GCP_CREDS_PATH):/home/udx/gcp-creds.json
   GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-creds.json
   CRED_INFO = "🎫 GCP Auth: Token Credentials ($(GCP_CREDS_PATH))"
-else
-  GCP_VOLUME = -v $(GCP_DEFAULT_PATH):/root/.config/gcloud
+else ifneq ($(wildcard $(GCP_DEFAULT_PATH)),)
+  GCP_VOLUME = -v $(GCP_DEFAULT_PATH):/usr/local/configs/gcloud
   GCP_ENV = 
   CRED_INFO = "👤 GCP Auth: Local gcloud session (~/.config/gcloud)"
+else
+  GCP_VOLUME = 
+  GCP_ENV = 
+  CRED_INFO = "⚠️  No GCP credentials found"
 endif
 
 # Run target (non-interactive)

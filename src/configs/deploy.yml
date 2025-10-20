@@ -2,30 +2,15 @@
 kind: workerDeployConfig
 version: udx.io/worker-v1/deploy
 config:
-  # Docker image to use - replace with your desired image
-  # For testing, alpine:latest is fast and lightweight
-  image: "alpine:latest"
+  image: "usabilitydynamics/udx-worker:latest"
 
-  # Environment variables to pass to container
   env:
-    # Add your environment variables here
     DEBUG: "true"
     PROJECT_NAME: "my-project"
 
-  # Volume mappings (source:destination format)
-  # Mount your local files/folders into the container
-  # You can use $(PWD) for current directory or relative/absolute paths
   volumes:
-    - "./src:/workspace/src"           # Mount source code directory
-    - "./data:/workspace/data"         # Mount data files directory
-    # - "$(PWD)/script.sh:/workspace/script.sh"  # Mount single file
-    # - "./config:/workspace/config"   # Uncomment to mount config files
+    - "./:/workspace"
 
-  # Command to run inside container
-  # Examples:
-  # - "bash /workspace/src/deploy.sh"
-  # - "python /workspace/src/main.py"
-  # - "terraform init && terraform plan"
   command: "echo 'Hello from worker container! Edit this command in deploy.yml'"
 
   # Additional arguments to pass to the command (optional)

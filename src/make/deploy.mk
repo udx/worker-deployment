@@ -22,27 +22,31 @@ GCP_ADC_PATH = $(HOME_DIR)/.config/gcloud/application_default_credentials.json
 # Add credential volumes and environment variables if they exist
 # Priority: PWD first, then CONFIG_DIR, then home directory
 ifneq ($(wildcard $(GCP_KEY_PATH_PWD)),)
-  GCP_VOLUME = -v $(GCP_KEY_PATH_PWD):/tmp/gcp-key.json
-  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+  # Option 1: Service Account Key - for UDX workers (sets GCP_CREDS + GOOGLE_APPLICATION_CREDENTIALS)
+  GCP_VOLUME = -v $(GCP_KEY_PATH_PWD):/home/udx/gcp-key.json
+  GCP_ENV = -e GCP_CREDS=/home/udx/gcp-key.json -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-key.json
   CRED_INFO = "🔑 GCP Auth: Service Account Key ($(GCP_KEY_PATH_PWD))"
 else ifneq ($(wildcard $(GCP_KEY_PATH_CONFIG)),)
-  GCP_VOLUME = -v $(GCP_KEY_PATH_CONFIG):/tmp/gcp-key.json
-  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json
+  GCP_VOLUME = -v $(GCP_KEY_PATH_CONFIG):/home/udx/gcp-key.json
+  GCP_ENV = -e GCP_CREDS=/home/udx/gcp-key.json -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-key.json
   CRED_INFO = "🔑 GCP Auth: Service Account Key ($(GCP_KEY_PATH_CONFIG))"
 else ifneq ($(wildcard $(GCP_CREDS_PATH_PWD)),)
-  GCP_VOLUME = -v $(GCP_CREDS_PATH_PWD):/tmp/gcp-creds.json
-  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json
+  # Option 2: Token/ADC file - for Terraform/gcloud (sets only GOOGLE_APPLICATION_CREDENTIALS)
+  GCP_VOLUME = -v $(GCP_CREDS_PATH_PWD):/home/udx/gcp-credentials.json
+  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-credentials.json
   CRED_INFO = "🎫 GCP Auth: Token Credentials ($(GCP_CREDS_PATH_PWD))"
 else ifneq ($(wildcard $(GCP_CREDS_PATH_CONFIG)),)
-  GCP_VOLUME = -v $(GCP_CREDS_PATH_CONFIG):/tmp/gcp-creds.json
-  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json
+  GCP_VOLUME = -v $(GCP_CREDS_PATH_CONFIG):/home/udx/gcp-credentials.json
+  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-credentials.json
   CRED_INFO = "🎫 GCP Auth: Token Credentials ($(GCP_CREDS_PATH_CONFIG))"
-else ifneq ($(wildcard $(GCP_ADC_PATH)),)
-  # Mount only the ADC file for local auth (gcloud needs write access to config dir)
-  GCP_VOLUME = -v $(GCP_ADC_PATH):/tmp/application_default_credentials.json:ro
-  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/tmp/application_default_credentials.json
-  GCP_ENV += -e CLOUDSDK_CORE_DISABLE_FILE_LOGGING=true
-  CRED_INFO = "👤 GCP Auth: Application Default Credentials (~/.config/gcloud/application_default_credentials.json)"
+else ifneq ($(wildcard $(GCP_DEFAULT_PATH)),)
+  # Option 3: Local gcloud - mounts full config directory for gcloud CLI + Terraform
+  GCP_VOLUME = -v $(GCP_DEFAULT_PATH):/root/.config/gcloud:ro
+  GCP_ENV = -e CLOUDSDK_CONFIG=/root/.config/gcloud
+  ifneq ($(wildcard $(GCP_ADC_PATH)),)
+    GCP_ENV += -e GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json
+  endif
+  CRED_INFO = "👤 GCP Auth: Local gcloud config (~/.config/gcloud)"
 else
   GCP_VOLUME = 
   GCP_ENV = 

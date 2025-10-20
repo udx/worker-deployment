@@ -30,7 +30,7 @@ worker-run
 
 ## GCP Authentication
 
-The tool automatically detects and uses your GCP credentials in priority order:
+The tool automatically detects and uses your GCP credentials in priority order. All methods set **both** `GOOGLE_APPLICATION_CREDENTIALS` (standard) and `GCP_CREDS` (UDX-specific) environment variables.
 
 ### Option 1: Service Account Key
 
@@ -41,34 +41,50 @@ Place a service account JSON key file in your project directory:
 gcp-key.json
 ```
 
-This mounts as `/tmp/gcp-key.json` with `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+**What it does:**
+- Mounts the file to `/tmp/gcp-key.json` in the container
+- Sets `GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-key.json` (for standard Google SDKs, Terraform, gcloud)
+- Sets `GCP_CREDS=/tmp/gcp-key.json` (for UDX workers)
+
+**Works with:** ✅ gcloud CLI, ✅ Terraform, ✅ All Google SDKs, ✅ UDX workers
 
 ### Option 2: Token Credentials
 
-Place token-based credentials in your project directory:
+Place token-based credentials (e.g., Application Default Credentials) in your project directory:
 
 ```bash
 # Name it:
 gcp-credentials.json
+
+# Or copy your local ADC:
+cp ~/.config/gcloud/application_default_credentials.json ./gcp-credentials.json
 ```
 
-This mounts as `/tmp/gcp-creds.json` with `GOOGLE_APPLICATION_CREDENTIALS` environment variable.
+**What it does:**
+- Mounts the file to `/tmp/gcp-creds.json` in the container
+- Sets `GOOGLE_APPLICATION_CREDENTIALS=/tmp/gcp-creds.json` (for standard Google SDKs, Terraform, gcloud)
+- Sets `GCP_CREDS=/tmp/gcp-creds.json` (for UDX workers)
 
-### Option 3: Application Default Credentials (Fallback)
+**Works with:** ✅ gcloud CLI, ✅ Terraform, ✅ All Google SDKs, ✅ UDX workers
 
-If no credential files are found, your local Application Default Credentials are used:
+### Option 3: Local gcloud Config (Development)
+
+If no credential files are found, your local gcloud configuration is mounted:
 
 ```bash
 # Authenticate with gcloud
+gcloud auth login
 gcloud auth application-default login
 ```
 
-This mounts `~/.config/gcloud/application_default_credentials.json` (read-only) and sets `GOOGLE_APPLICATION_CREDENTIALS`, making it compatible with:
-- ✅ Terraform (GCS backend, GCP resources)
-- ✅ Python/Node.js/Go GCP SDKs
-- ✅ Any tool using GCP Application Default Credentials
+**What it does:**
+- Mounts `~/.config/gcloud` to `/root/.config/gcloud` (read-only)
+- Sets `CLOUDSDK_CONFIG=/root/.config/gcloud` (for gcloud CLI)
+- Sets `GOOGLE_APPLICATION_CREDENTIALS=/root/.config/gcloud/application_default_credentials.json` (for SDKs/Terraform)
 
-**Note:** For `gcloud` CLI commands inside the container, use Option 1 or 2 (service account key or token credentials) as gcloud needs write access to its config directory.
+**Works with:** ✅ gcloud CLI, ✅ Terraform, ✅ All Google SDKs
+
+**Note:** This is best for local development. For production or CI/CD, use Option 1 or 2.
 
 ## Commands
 

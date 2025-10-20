@@ -90,6 +90,7 @@ gcloud auth application-default login
 
 | Command                           | Description                                 |
 | --------------------------------- | ------------------------------------------- |
+| `worker-auth`                     | Setup GCP authentication (interactive)      |
 | `worker-config`                   | Generate config template                    |
 | `worker-run`                      | Run container                               |
 | `worker-run run-it`               | Run container interactively                 |

@@ -5,7 +5,8 @@
   "main": "init.sh",
   "bin": {
     "worker-config": "src/lib/config.sh",
-    "worker-run": "src/lib/deploy.sh"
+    "worker-run": "src/lib/deploy.sh",
+    "worker-auth-gcp": "src/providers/gcp-auth.sh"
   },
   "scripts": {
     "test": "cd test && ./index.sh",

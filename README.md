@@ -73,11 +73,10 @@ The tool automatically detects and mounts it.
 
 ```bash
 worker-config                    # Generate config template
-worker-run                       # Run container
+worker-run                       # Run container (auto-detects credentials)
 worker-run --dry-run             # Preview without executing
 worker-run run-it                # Interactive mode (shell access)
 worker-run --config=custom.yml   # Use custom config file
-worker-auth-gcp                  # Check GCP auth status
 ```
 
 ## Configuration

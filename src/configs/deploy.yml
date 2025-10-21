@@ -17,3 +17,15 @@ config:
   # args:
   #   - "--verbose"
   #   - "--output=/workspace/outputs"
+
+  # GCP Service Account Configuration (optional)
+  # If not specified, tool looks for gcp-key.json or gcp-credentials.json
+  # service_account:
+  #   # Option 1: Specify custom key file path
+  #   key_path: "./path/to/service-account-key.json"
+  #
+  #   # Option 2: Specify custom token file path (for Workload Identity)
+  #   token_path: "./path/to/credentials.json"
+  #
+  #   # Option 3: Use impersonation (requires gcloud auth on host)
+  #   email: "your-service-account@your-project.iam.gserviceaccount.com"

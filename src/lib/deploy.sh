@@ -167,6 +167,11 @@ printf "${INFO}Using configuration: $config_file${NC}\n"
 WORKER_IMAGE=$(yq eval '.config.image' "$config_file")
 COMMAND=$(yq eval '.config.command' "$config_file")
 
+# Parse service account configuration (optional)
+SA_KEY_PATH=$(yq eval '.config.service_account.key_path // ""' "$config_file")
+SA_TOKEN_PATH=$(yq eval '.config.service_account.token_path // ""' "$config_file")
+SA_EMAIL=$(yq eval '.config.service_account.email // ""' "$config_file")
+
 # Validate required fields
 if [[ "$WORKER_IMAGE" == "null" || -z "$WORKER_IMAGE" ]]; then
     printf "${ERROR}Error: 'config.image' is required in configuration file${NC}\n" >&2
@@ -237,6 +242,17 @@ make_args+=("COMMAND=$COMMAND")
 make_args+=("VOLUMES=$VOLUMES")
 make_args+=("ENV_VARS=$ENV_VARS")
 make_args+=("ARGS=$ARGS")
+
+# Pass service account config to make
+if [[ -n "$SA_KEY_PATH" ]]; then
+    make_args+=("GCP_SA_KEY_PATH=$SA_KEY_PATH")
+fi
+if [[ -n "$SA_TOKEN_PATH" ]]; then
+    make_args+=("GCP_SA_TOKEN_PATH=$SA_TOKEN_PATH")
+fi
+if [[ -n "$SA_EMAIL" ]]; then
+    make_args+=("GCP_SA_EMAIL=$SA_EMAIL")
+fi
 
 # Pass everything through to make
 exec "$MAKE_BIN" -f "$MK" "${make_args[@]}" "$target"

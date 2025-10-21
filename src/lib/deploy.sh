@@ -271,17 +271,24 @@ if [[ -n "$SA_EMAIL" ]]; then
     IMPERSONATE_TOKEN_FILE="/tmp/worker-gcp-impersonate-$$.json"
     
     # Create a credentials file with the access token
-    # Capture both stdout and stderr, then filter out WARNING lines
+    # Capture both stdout and stderr
+    set +e  # Temporarily disable exit on error
     GCLOUD_OUTPUT=$(gcloud auth print-access-token --impersonate-service-account="$SA_EMAIL" 2>&1)
     GCLOUD_EXIT_CODE=$?
+    set -e  # Re-enable exit on error
     
     # Extract the token (first line that looks like a token - starts with ya29)
-    ACCESS_TOKEN=$(echo "$GCLOUD_OUTPUT" | grep -E '^ya29\.' | head -1)
+    ACCESS_TOKEN=$(echo "$GCLOUD_OUTPUT" | grep -E '^ya29\.' | head -1 || true)
     
-    if [[ $GCLOUD_EXIT_CODE -ne 0 ]] || [[ -z "$ACCESS_TOKEN" ]]; then
-        printf "${ERROR}Error: Failed to impersonate service account${NC}\n" >&2
-        # Show the actual error from gcloud (filter out WARNING lines)
-        echo "$GCLOUD_OUTPUT" | grep -v "^WARNING:" | grep -v "^$" >&2
+    # Check if output contains ERROR (gcloud sometimes returns 0 even on errors)
+    HAS_ERROR=$(echo "$GCLOUD_OUTPUT" | grep -c "^ERROR:" || true)
+    
+    if [[ $GCLOUD_EXIT_CODE -ne 0 ]] || [[ -z "$ACCESS_TOKEN" ]] || [[ $HAS_ERROR -gt 0 ]]; then
+        printf "${ERROR}Error: Failed to impersonate service account: $SA_EMAIL${NC}\n" >&2
+        printf "${ERROR}Exit code: $GCLOUD_EXIT_CODE${NC}\n" >&2
+        printf "\n${ERROR}gcloud output:${NC}\n" >&2
+        # Show the actual error from gcloud (filter out WARNING lines but keep errors)
+        echo "$GCLOUD_OUTPUT" | grep -v "^WARNING:" >&2
         printf "\n${INFO}Possible causes:${NC}\n" >&2
         printf "  1. You don't have roles/iam.serviceAccountTokenCreator permission\n" >&2
         printf "  2. Service account doesn't exist\n" >&2

@@ -8,7 +8,6 @@ Simple YAML configuration + automatic GCP credential detection = zero-config dep
 
 - ✅ **Zero Config** - Automatically detects and uses your existing gcloud credentials
 - ✅ **Works Everywhere** - Local dev, CI/CD, production
-- ✅ **Any Docker Image** - Python, Terraform, Node.js, your custom images
 - ✅ **Secure** - Read-only mounts, no credential copying
 
 ## Installation

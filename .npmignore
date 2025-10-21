@@ -1,0 +1,25 @@
+# Test directories
+test/
+test-deployment/
+test-*/
+
+# Development files
+.git/
+.gitignore
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Release script (not needed in package)
+release.sh

@@ -29,6 +29,21 @@ check_yq() {
     fi
 }
 
+# Function to check if Docker is available and running
+check_docker() {
+    if ! command -v docker >/dev/null 2>&1; then
+        printf "${ERROR}Error: Docker is not installed${NC}\n" >&2
+        printf "${INFO}Install Docker from: https://docs.docker.com/get-docker/${NC}\n" >&2
+        exit 1
+    fi
+    
+    if ! docker info >/dev/null 2>&1; then
+        printf "${ERROR}Error: Docker is not running${NC}\n" >&2
+        printf "${INFO}Start Docker Desktop or run: sudo systemctl start docker${NC}\n" >&2
+        exit 1
+    fi
+}
+
 # Resolve script directory
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 while [ -L "$SCRIPT_PATH" ]; do
@@ -44,11 +59,14 @@ PKG_DIR="${SCRIPT_DIR}/.."
 # Resolve makefile
 MK="$PKG_DIR/make/deploy.mk"
 
-# Default configuration file - look in current working directory first
-CONFIG_FILE="$(pwd)/deploy.yml"
-# Fallback to package template if not found
-if [[ ! -f "$CONFIG_FILE" ]]; then
-    CONFIG_FILE="${PKG_DIR}/configs/deploy.yml"
+# Default configuration file - look in current working directory only
+# Check for both .yml and .yaml extensions
+if [[ -f "$(pwd)/deploy.yml" ]]; then
+    CONFIG_FILE="$(pwd)/deploy.yml"
+elif [[ -f "$(pwd)/deploy.yaml" ]]; then
+    CONFIG_FILE="$(pwd)/deploy.yaml"
+else
+    CONFIG_FILE="$(pwd)/deploy.yml"  # Default for error messages
 fi
 
 # Function to show help
@@ -56,7 +74,8 @@ show_help() {
     echo "Usage: $0 [OPTIONS] [TARGET]"
     echo ""
     echo "Options:"
-    echo "  --config=FILE     Use custom config file (default: ./deploy.yml)"
+    echo "  --config=FILE     Use custom config file (default: ./deploy.yml or ./deploy.yaml)"
+    echo "  --dry-run         Show what would be executed without running it"
     echo "  --help           Show this help"
     echo ""
     echo "Targets:"
@@ -67,11 +86,13 @@ show_help() {
     echo "  $0                              # Run deployment with default config"
     echo "  $0 run-it                       # Run deployment interactively"
     echo "  $0 --config=my-config.yml      # Use custom config file"
+    echo "  $0 --dry-run                    # Show what would be executed"
 }
 
 # Parse command line arguments
 target="run"
 config_file=""
+dry_run=false
 make_args=()
 
 for arg in "$@"; do
@@ -84,6 +105,9 @@ for arg in "$@"; do
             elif [[ "$config_file" != /* ]]; then
                 config_file="$(pwd)/$config_file"
             fi
+            ;;
+        --dry-run)
+            dry_run=true
             ;;
         --help)
             show_help
@@ -107,8 +131,28 @@ fi
 
 make_args+=("CONFIG_FILE=$config_file")
 
+# Pass config directory to make for credential detection
+config_dir="$(dirname "$config_file")"
+make_args+=("CONFIG_DIR=$config_dir")
+
+# Add dry-run flag if specified
+if [[ "$dry_run" == true ]]; then
+    make_args+=("DRY_RUN=true")
+fi
+
 # Check dependencies
 check_yq
+check_docker
+
+# Auto-copy ADC to gcp-key.json if no credentials exist
+# if [[ ! -f "gcp-key.json" ]] && [[ ! -f "gcp-credentials.json" ]]; then
+#     ADC_PATH="$HOME/.config/gcloud/application_default_credentials.json"
+#     if [[ -f "$ADC_PATH" ]]; then
+#         printf "${INFO}No credential files found. Using local ADC...${NC}\n"
+#         cp "$ADC_PATH" "gcp-key.json"
+#         printf "${OK}✓ Created gcp-key.json from local credentials${NC}\n"
+#     fi
+# fi
 
 # Verify config file exists
 if [[ ! -f "$config_file" ]]; then
@@ -123,17 +167,51 @@ printf "${INFO}Using configuration: $config_file${NC}\n"
 WORKER_IMAGE=$(yq eval '.config.image' "$config_file")
 COMMAND=$(yq eval '.config.command' "$config_file")
 
+# Parse service account configuration (optional)
+SA_KEY_PATH=$(yq eval '.config.service_account.key_path // ""' "$config_file")
+SA_TOKEN_PATH=$(yq eval '.config.service_account.token_path // ""' "$config_file")
+SA_EMAIL=$(yq eval '.config.service_account.email // ""' "$config_file")
+
+# Validate required fields
+if [[ "$WORKER_IMAGE" == "null" || -z "$WORKER_IMAGE" ]]; then
+    printf "${ERROR}Error: 'config.image' is required in configuration file${NC}\n" >&2
+    exit 1
+fi
+
+if [[ "$COMMAND" == "null" || -z "$COMMAND" ]]; then
+    printf "${ERROR}Error: 'config.command' is required in configuration file${NC}\n" >&2
+    exit 1
+fi
+
 # Build volumes from config
 VOLUMES=""
 volume_count=$(yq eval '.config.volumes | length' "$config_file")
 for ((i=0; i<volume_count; i++)); do
     volume=$(yq eval ".config.volumes[$i]" "$config_file")
+    
+    # Extract source and destination paths
+    src_path="${volume%%:*}"
+    dest_path="${volume#*:}"
+    
+    # Expand shell variables like $(PWD)
+    src_path=$(eval echo "$src_path")
+    
     # Convert relative paths to absolute
-    if [[ "$volume" == ./* ]]; then
-        src_path="${volume%%:*}"
-        dest_path="${volume#*:}"
-        volume="$(cd "$PKG_DIR" && pwd)/${src_path#./}:$dest_path"
+    if [[ "$src_path" == ./* ]]; then
+        src_path="$(pwd)/${src_path#./}"
+    elif [[ "$src_path" != /* ]]; then
+        # Handle relative paths that don't start with ./
+        src_path="$(pwd)/$src_path"
     fi
+    
+    # Validate that source path exists
+    if [[ ! -e "$src_path" ]]; then
+        printf "${ERROR}Error: Volume source path does not exist: $src_path${NC}\n" >&2
+        exit 1
+    fi
+    
+    # Reconstruct the volume mapping
+    volume="$src_path:$dest_path"
     VOLUMES="$VOLUMES -v $volume"
 done
 
@@ -164,6 +242,126 @@ make_args+=("COMMAND=$COMMAND")
 make_args+=("VOLUMES=$VOLUMES")
 make_args+=("ENV_VARS=$ENV_VARS")
 make_args+=("ARGS=$ARGS")
+
+# Pass service account config to make
+if [[ -n "$SA_KEY_PATH" ]]; then
+    make_args+=("GCP_SA_KEY_PATH=$SA_KEY_PATH")
+fi
+if [[ -n "$SA_TOKEN_PATH" ]]; then
+    make_args+=("GCP_SA_TOKEN_PATH=$SA_TOKEN_PATH")
+fi
+if [[ -n "$SA_EMAIL" ]]; then
+    # Verify gcloud is available for impersonation
+    if ! command -v gcloud >/dev/null 2>&1; then
+        printf "${ERROR}Error: gcloud CLI is required for service account impersonation${NC}\n" >&2
+        printf "${INFO}Install: brew install google-cloud-sdk${NC}\n" >&2
+        exit 1
+    fi
+    
+    # Check if user is authenticated
+    if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -q "@"; then
+        printf "${ERROR}Error: No active gcloud authentication found${NC}\n" >&2
+        printf "${INFO}Run: gcloud auth login${NC}\n" >&2
+        exit 1
+    fi
+    
+    printf "${INFO}Generating impersonation credentials for: $SA_EMAIL${NC}\n"
+    
+    # Generate ADC credentials file via impersonation
+    # This creates a proper credential file that works with Terraform, SDKs, and gcloud
+    IMPERSONATE_CREDS_FILE="/tmp/worker-gcp-impersonate-$$.json"
+    
+    # Use gcloud to generate ADC credentials with impersonation
+    # This is the official Google-recommended approach for Terraform
+    set +e  # Temporarily disable exit on error
+    GCLOUD_OUTPUT=$(gcloud auth application-default print-access-token --impersonate-service-account="$SA_EMAIL" 2>&1)
+    GCLOUD_EXIT_CODE=$?
+    
+    # If application-default command fails, fall back to creating ADC file manually
+    if [[ $GCLOUD_EXIT_CODE -ne 0 ]]; then
+        # Generate access token for fallback
+        GCLOUD_OUTPUT=$(gcloud auth print-access-token --impersonate-service-account="$SA_EMAIL" 2>&1)
+        GCLOUD_EXIT_CODE=$?
+    fi
+    set -e  # Re-enable exit on error
+    
+    # Extract the token (first line that looks like a token - starts with ya29)
+    ACCESS_TOKEN=$(echo "$GCLOUD_OUTPUT" | grep -E '^ya29\.' | head -1 || true)
+    
+    # Check if output contains ERROR
+    HAS_ERROR=$(echo "$GCLOUD_OUTPUT" | grep -c "^ERROR:" || true)
+    
+    if [[ $GCLOUD_EXIT_CODE -ne 0 ]] || [[ -z "$ACCESS_TOKEN" ]] || [[ $HAS_ERROR -gt 0 ]]; then
+        printf "${ERROR}Error: Failed to impersonate service account: $SA_EMAIL${NC}\n" >&2
+        printf "${ERROR}Exit code: $GCLOUD_EXIT_CODE${NC}\n" >&2
+        printf "\n${ERROR}gcloud output:${NC}\n" >&2
+        echo "$GCLOUD_OUTPUT" | grep -v "^WARNING:" >&2
+        printf "\n${INFO}Possible causes:${NC}\n" >&2
+        printf "  1. You don't have roles/iam.serviceAccountTokenCreator permission\n" >&2
+        printf "  2. Service account doesn't exist\n" >&2
+        printf "  3. Not authenticated with gcloud\n" >&2
+        printf "\n${INFO}To fix, run this command:${NC}\n" >&2
+        SA_PROJECT="${SA_EMAIL#*@}"
+        SA_PROJECT="${SA_PROJECT%%.*}"
+        printf "  gcloud iam service-accounts add-iam-policy-binding \\\\\n" >&2
+        printf "    $SA_EMAIL \\\\\n" >&2
+        printf "    --member=\"user:\$(gcloud config get-value account)\" \\\\\n" >&2
+        printf "    --role=\"roles/iam.serviceAccountTokenCreator\" \\\\\n" >&2
+        printf "    --project=$SA_PROJECT\n" >&2
+        exit 1
+    fi
+    
+    # Verify we got a valid token
+    if [[ -z "$ACCESS_TOKEN" ]] || [[ "$ACCESS_TOKEN" == ERROR* ]] || [[ "$ACCESS_TOKEN" == *"ERROR"* ]]; then
+        printf "${ERROR}Error: Invalid token received from gcloud${NC}\n" >&2
+        printf "${ERROR}${ACCESS_TOKEN}${NC}\n" >&2
+        exit 1
+    fi
+    
+    printf "${OK}✓ Generated impersonation credentials${NC}\n"
+    
+    # Get user's ADC file to use as source credentials
+    USER_ADC_FILE="$HOME/.config/gcloud/application_default_credentials.json"
+    
+    if [[ -f "$USER_ADC_FILE" ]]; then
+        # Create impersonated service account credentials using user's ADC
+        # This is the proper format that Terraform expects
+        printf "${INFO}Using ADC from: $USER_ADC_FILE${NC}\n"
+        
+        # Read the user's ADC credentials
+        SOURCE_CREDS=$(cat "$USER_ADC_FILE")
+        
+        # Create impersonated service account credential file
+        cat > "$IMPERSONATE_CREDS_FILE" <<EOF
+{
+  "delegates": [],
+  "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/$SA_EMAIL:generateAccessToken",
+  "source_credentials": $SOURCE_CREDS,
+  "type": "impersonated_service_account"
+}
+EOF
+    else
+        # Fallback: User doesn't have ADC, just use access token
+        printf "${WARN}No ADC file found, using access token only${NC}\n"
+        printf "${INFO}For full Terraform compatibility, run: gcloud auth application-default login${NC}\n"
+        
+        # Create a simple credential file with just the access token
+        # This works for some operations but may fail for others
+        cat > "$IMPERSONATE_CREDS_FILE" <<EOF
+{
+  "type": "authorized_user",
+  "client_id": "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com",
+  "client_secret": "d-FL95Q19q7MQmFpd7hHD0Ty",
+  "refresh_token": "",
+  "access_token": "$ACCESS_TOKEN"
+}
+EOF
+    fi
+    
+    # Pass both the credentials file and access token to make
+    make_args+=("GCP_IMPERSONATE_CREDS_FILE=$IMPERSONATE_CREDS_FILE")
+    make_args+=("GCP_IMPERSONATE_ACCESS_TOKEN=$ACCESS_TOKEN")
+fi
 
 # Pass everything through to make
 exec "$MAKE_BIN" -f "$MK" "${make_args[@]}" "$target"

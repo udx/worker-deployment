@@ -56,7 +56,7 @@ ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else
-	docker run --rm \
+	@docker run --rm \
 		$(VOLUMES) \
 		$(CLOUD_VOLUMES) \
 		$(ENV_VARS) \
@@ -86,7 +86,7 @@ ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else
-	docker run --rm -it \
+	@docker run --rm -it \
 		$(VOLUMES) \
 		$(CLOUD_VOLUMES) \
 		$(ENV_VARS) \

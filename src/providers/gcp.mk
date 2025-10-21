@@ -12,7 +12,7 @@
 CONFIG_DIR ?= $(PWD)
 GCP_SA_KEY_PATH ?=
 GCP_SA_TOKEN_PATH ?=
-GCP_SA_EMAIL ?=
+GCP_IMPERSONATE_ACCESS_TOKEN ?=
 
 # Default file paths
 GCP_KEY_PATH_PWD = $(PWD)/gcp-key.json
@@ -45,20 +45,18 @@ else ifneq ($(wildcard $(GCP_KEY_PATH_CONFIG)),)
 else ifneq ($(wildcard $(GCP_CREDS_PATH_PWD)),)
   # Default: gcp-credentials.json in PWD
   GCP_VOLUME = -v $(GCP_CREDS_PATH_PWD):/home/udx/gcp-credentials.json
-  GCP_ENV = -e GCP_CREDS=/home/udx/gcp-credentials.json -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-credentials.json
+  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-credentials.json
   GCP_CRED_INFO = "🎫 GCP Auth: Workload Identity Token ($(GCP_CREDS_PATH_PWD))"
 else ifneq ($(wildcard $(GCP_CREDS_PATH_CONFIG)),)
   # Default: gcp-credentials.json in config dir
   GCP_VOLUME = -v $(GCP_CREDS_PATH_CONFIG):/home/udx/gcp-credentials.json
-  GCP_ENV = -e GCP_CREDS=/home/udx/gcp-credentials.json -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-credentials.json
+  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-credentials.json
   GCP_CRED_INFO = "🎫 GCP Auth: Workload Identity Token ($(GCP_CREDS_PATH_CONFIG))"
-else ifneq ($(GCP_SA_EMAIL),)
-  # Impersonation: use host gcloud with impersonation
-  HOME_DIR = $(shell echo $$HOME)
-  GCP_VOLUME = -v $(HOME_DIR)/.config/gcloud:/root/.config/gcloud:ro
-  GCP_ENV = -e CLOUDSDK_AUTH_IMPERSONATE_SERVICE_ACCOUNT=$(GCP_SA_EMAIL)
-  GCP_ENV += -e CLOUDSDK_CONFIG=/root/.config/gcloud
-  GCP_CRED_INFO = "👤 GCP Auth: Impersonating $(GCP_SA_EMAIL)"
+else ifneq ($(GCP_IMPERSONATE_ACCESS_TOKEN),)
+  # Impersonation: access token passed as environment variable
+  GCP_VOLUME = 
+  GCP_ENV = -e CLOUDSDK_AUTH_ACCESS_TOKEN=$(GCP_IMPERSONATE_ACCESS_TOKEN)
+  GCP_CRED_INFO = "👤 GCP Auth: Impersonation Token (gcloud CLI only)"
 else
   GCP_VOLUME = 
   GCP_ENV = 

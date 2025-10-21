@@ -34,9 +34,13 @@ worker-run
 
 ## GCP Authentication
 
-The tool uses **service account keys** for authentication. This works everywhere: local development, CI/CD, and production.
+The tool supports **three authentication methods** to work seamlessly in any environment:
 
-### For Local Development
+1. **Service Account Key** - Manual key file (local dev)
+2. **Workload Identity Federation** - Keyless auth (GitHub Actions)
+3. **Service Account Impersonation** - Use your user credentials (local dev)
+
+### Method 1: Service Account Key (Local Development)
 
 Create a service account key and save it as `gcp-key.json`:
 
@@ -60,7 +64,7 @@ worker-run
 
 **Security tip:** Add `gcp-key.json` to `.gitignore` and delete the key from Google Cloud when done.
 
-### For GitHub Actions (Workload Identity)
+### Method 2: Workload Identity Federation (GitHub Actions)
 
 Use keyless authentication with Workload Identity Federation:
 
@@ -79,9 +83,51 @@ Use keyless authentication with Workload Identity Federation:
     worker-run
 ```
 
-**File naming:**
-- `gcp-key.json` → Local development (service account key)
-- `gcp-credentials.json` → GitHub Actions (Workload Identity token)
+### Method 3: Service Account Impersonation (Local Development)
+
+Use your own gcloud credentials to impersonate a service account:
+
+```yaml
+# In deploy.yml
+config:
+  service_account:
+    email: "my-sa@my-project.iam.gserviceaccount.com"
+```
+
+**Setup (one-time):**
+```bash
+# 1. Authenticate with your user account
+gcloud auth login
+
+# 2. Grant yourself impersonation permission
+gcloud iam service-accounts add-iam-policy-binding \
+  my-sa@my-project.iam.gserviceaccount.com \
+  --member="user:$(gcloud config get-value account)" \
+  --role="roles/iam.serviceAccountTokenCreator" \
+  --project=MY_PROJECT
+
+# 3. Run deployment
+worker-run
+```
+
+**Benefits:**
+- ✅ No key files to manage
+- ✅ Uses your existing gcloud auth
+- ✅ Temporary tokens (1 hour)
+- ✅ Easy permission management
+
+**Note:** Impersonation only works with `gcloud` CLI commands. For Terraform/SDKs, use Method 1 or 2.
+
+---
+
+### Authentication Priority
+
+The tool checks for credentials in this order:
+
+1. Config-specified paths (`service_account.key_path` or `service_account.token_path`)
+2. `gcp-key.json` in current or config directory
+3. `gcp-credentials.json` in current or config directory
+4. Service account impersonation (`service_account.email`)
 
 ### Advanced: Config-Based Authentication
 
@@ -102,30 +148,26 @@ config:
     email: "my-sa@my-project.iam.gserviceaccount.com"
 ```
 
-**Impersonation setup:**
-```bash
-# One-time: Grant yourself impersonation rights
-gcloud iam service-accounts add-iam-policy-binding \
-  my-sa@my-project.iam.gserviceaccount.com \
-  --member="user:your-email@example.com" \
-  --role="roles/iam.serviceAccountTokenCreator"
+**Use cases:**
+- Custom credential file locations
+- Multiple deployment configs with different credentials
+- Shared team configurations
 
-# Configure gcloud to impersonate
-gcloud config set auth/impersonate_service_account my-sa@my-project.iam.gserviceaccount.com
+## How It Works
 
-# Then just run
-worker-run
-```
+### Credential Detection
 
-### Why Service Account Keys?
+The tool automatically:
+1. Detects available credentials (files or config)
+2. Mounts credential files into the container
+3. Sets appropriate environment variables (`GOOGLE_APPLICATION_CREDENTIALS`, `CLOUDSDK_AUTH_ACCESS_TOKEN`)
+4. Container has full GCP access
 
-**UID/GID Mismatch Issue:** Mounting local user credentials (`~/.config/gcloud`) doesn't work when the container runs as a non-root user (UID 500) because the host files are owned by a different UID (e.g., 501). This causes permission denied errors.
+### Why Not Mount `~/.config/gcloud`?
 
-**Service account keys work because:**
-- ✅ File is copied/created with correct ownership
-- ✅ Works with both `gcloud` CLI and Terraform
-- ✅ Same approach for local dev and CI/CD
-- ✅ Can be easily rotated and revoked
+**UID/GID Mismatch:** When containers run as non-root users (e.g., UID 500), they can't read host files owned by your user (e.g., UID 501). This causes permission errors.
+
+**Our solution:** Generate or copy credential files with correct ownership, avoiding permission issues entirely.
 
 ## Commands
 

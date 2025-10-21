@@ -1,7 +1,7 @@
 {
   "name": "@udx/worker-deployment",
   "version": "1.3.0",
-  "description": "Docker container runner with YAML configuration and automatic GCP credential mounting",
+  "description": "Docker container runner with YAML configuration and automatic GCP authentication (keys, Workload Identity, impersonation)",
   "main": "init.sh",
   "bin": {
     "worker-config": "src/lib/config.sh",

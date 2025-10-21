@@ -251,7 +251,64 @@ if [[ -n "$SA_TOKEN_PATH" ]]; then
     make_args+=("GCP_SA_TOKEN_PATH=$SA_TOKEN_PATH")
 fi
 if [[ -n "$SA_EMAIL" ]]; then
-    make_args+=("GCP_SA_EMAIL=$SA_EMAIL")
+    # Verify gcloud is available for impersonation
+    if ! command -v gcloud >/dev/null 2>&1; then
+        printf "${ERROR}Error: gcloud CLI is required for service account impersonation${NC}\n" >&2
+        printf "${INFO}Install: brew install google-cloud-sdk${NC}\n" >&2
+        exit 1
+    fi
+    
+    # Check if user is authenticated
+    if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" 2>/dev/null | grep -q "@"; then
+        printf "${ERROR}Error: No active gcloud authentication found${NC}\n" >&2
+        printf "${INFO}Run: gcloud auth login${NC}\n" >&2
+        exit 1
+    fi
+    
+    printf "${INFO}Generating impersonation token for: $SA_EMAIL${NC}\n"
+    
+    # Generate access token on host via impersonation
+    IMPERSONATE_TOKEN_FILE="/tmp/worker-gcp-impersonate-$$.json"
+    
+    # Create a credentials file with the access token
+    # Capture both stdout and stderr, then filter out WARNING lines
+    GCLOUD_OUTPUT=$(gcloud auth print-access-token --impersonate-service-account="$SA_EMAIL" 2>&1)
+    GCLOUD_EXIT_CODE=$?
+    
+    # Extract the token (first line that looks like a token - starts with ya29)
+    ACCESS_TOKEN=$(echo "$GCLOUD_OUTPUT" | grep -E '^ya29\.' | head -1)
+    
+    if [[ $GCLOUD_EXIT_CODE -ne 0 ]] || [[ -z "$ACCESS_TOKEN" ]]; then
+        printf "${ERROR}Error: Failed to impersonate service account${NC}\n" >&2
+        # Show the actual error from gcloud (filter out WARNING lines)
+        echo "$GCLOUD_OUTPUT" | grep -v "^WARNING:" | grep -v "^$" >&2
+        printf "\n${INFO}Possible causes:${NC}\n" >&2
+        printf "  1. You don't have roles/iam.serviceAccountTokenCreator permission\n" >&2
+        printf "  2. Service account doesn't exist\n" >&2
+        printf "  3. Not authenticated with gcloud\n" >&2
+        printf "\n${INFO}To fix, run this command:${NC}\n" >&2
+        # Extract project from service account email
+        SA_PROJECT="${SA_EMAIL#*@}"
+        SA_PROJECT="${SA_PROJECT%%.*}"
+        printf "  gcloud iam service-accounts add-iam-policy-binding \\\\\n" >&2
+        printf "    $SA_EMAIL \\\\\n" >&2
+        printf "    --member=\"user:\$(gcloud config get-value account)\" \\\\\n" >&2
+        printf "    --role=\"roles/iam.serviceAccountTokenCreator\" \\\\\n" >&2
+        printf "    --project=$SA_PROJECT\n" >&2
+        exit 1
+    fi
+    
+    # Verify we got a valid token (not an error message)
+    if [[ -z "$ACCESS_TOKEN" ]] || [[ "$ACCESS_TOKEN" == ERROR* ]] || [[ "$ACCESS_TOKEN" == *"ERROR"* ]]; then
+        printf "${ERROR}Error: Invalid token received from gcloud${NC}\n" >&2
+        printf "${ERROR}${ACCESS_TOKEN}${NC}\n" >&2
+        exit 1
+    fi
+    
+    printf "${OK}✓ Generated impersonation token${NC}\n"
+    
+    # Pass the access token directly - simpler and no hardcoded values
+    make_args+=("GCP_IMPERSONATE_ACCESS_TOKEN=$ACCESS_TOKEN")
 fi
 
 # Pass everything through to make

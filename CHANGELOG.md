@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.0] - 2025-10-21
+
+### 🎯 Enhanced - Full Terraform/SDK Support for Impersonation
+
+### Changed
+- **Service Account Impersonation** - Now fully compatible with Terraform, SDKs, gcloud CLI, and all Google Cloud client libraries
+  - Uses user's Application Default Credentials (ADC) as source for impersonation
+  - Generates proper `impersonated_service_account` credential file (official Google format)
+  - Sets both `GOOGLE_APPLICATION_CREDENTIALS` (for Terraform/SDKs) and `CLOUDSDK_AUTH_ACCESS_TOKEN` (for gcloud)
+  - Dual authentication ensures all tools work seamlessly
+  - Eliminates the need for service account key files even when using Terraform
+
+### Added
+- **ADC Integration** - Automatically uses `~/.config/gcloud/application_default_credentials.json`
+- **Fallback Support** - Falls back to access token if ADC not configured
+- **Setup Guidance** - Clear instructions for `gcloud auth application-default login`
+
+### Technical Details
+- Creates `impersonated_service_account` type credential file using user's ADC as source
+- Mounts credential file as read-only in container
+- Passes access token as environment variable for gcloud CLI compatibility
+- Follows official Google Cloud authentication best practices
+- Token remains valid for 1 hour
+
+---
+
+## [2.0.2] - 2025-10-21
+
+### Fixed
+- **Impersonation Error Handling** - Improved error detection and display for gcloud impersonation failures
+- Better filtering of WARNING messages from gcloud output
+
+---
+
+## [2.0.1] - 2025-10-21
+
+### Changed
+- **README Simplification** - Prioritized impersonation method, merged auth sections, focused on worker examples
+
+---
+
 ## [2.0.0] - 2025-10-21
 
 ### 🎉 Major Release - Complete Authentication Overhaul

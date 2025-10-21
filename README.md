@@ -50,23 +50,24 @@ config:
 
 **One-time setup:**
 ```bash
-# 1. Authenticate
+# 1. Authenticate with gcloud
 gcloud auth login
 
-# 2. Grant yourself impersonation permission
+# 2. Set up Application Default Credentials (required for Terraform)
+gcloud auth application-default login
+
+# 3. Grant yourself impersonation permission
 gcloud iam service-accounts add-iam-policy-binding \
   my-sa@my-project.iam.gserviceaccount.com \
   --member="user:$(gcloud config get-value account)" \
   --role="roles/iam.serviceAccountTokenCreator" \
   --project=MY_PROJECT
 
-# 3. Run
+# 4. Run
 worker-run
 ```
 
-**Why use this?** ✅ No key files ✅ Temporary tokens ✅ Easy permission management
-
-**Note:** Works with `gcloud` CLI only. For Terraform/SDKs, use a key file.
+**Why use this?** ✅ No key files ✅ Temporary tokens ✅ Easy permission management ✅ Works with Terraform/SDKs
 
 ---
 

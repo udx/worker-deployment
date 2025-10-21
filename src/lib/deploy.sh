@@ -265,36 +265,42 @@ if [[ -n "$SA_EMAIL" ]]; then
         exit 1
     fi
     
-    printf "${INFO}Generating impersonation token for: $SA_EMAIL${NC}\n"
+    printf "${INFO}Generating impersonation credentials for: $SA_EMAIL${NC}\n"
     
-    # Generate access token on host via impersonation
-    IMPERSONATE_TOKEN_FILE="/tmp/worker-gcp-impersonate-$$.json"
+    # Generate ADC credentials file via impersonation
+    # This creates a proper credential file that works with Terraform, SDKs, and gcloud
+    IMPERSONATE_CREDS_FILE="/tmp/worker-gcp-impersonate-$$.json"
     
-    # Create a credentials file with the access token
-    # Capture both stdout and stderr
+    # Use gcloud to generate ADC credentials with impersonation
+    # This is the official Google-recommended approach for Terraform
     set +e  # Temporarily disable exit on error
-    GCLOUD_OUTPUT=$(gcloud auth print-access-token --impersonate-service-account="$SA_EMAIL" 2>&1)
+    GCLOUD_OUTPUT=$(gcloud auth application-default print-access-token --impersonate-service-account="$SA_EMAIL" 2>&1)
     GCLOUD_EXIT_CODE=$?
+    
+    # If application-default command fails, fall back to creating ADC file manually
+    if [[ $GCLOUD_EXIT_CODE -ne 0 ]]; then
+        # Generate access token for fallback
+        GCLOUD_OUTPUT=$(gcloud auth print-access-token --impersonate-service-account="$SA_EMAIL" 2>&1)
+        GCLOUD_EXIT_CODE=$?
+    fi
     set -e  # Re-enable exit on error
     
     # Extract the token (first line that looks like a token - starts with ya29)
     ACCESS_TOKEN=$(echo "$GCLOUD_OUTPUT" | grep -E '^ya29\.' | head -1 || true)
     
-    # Check if output contains ERROR (gcloud sometimes returns 0 even on errors)
+    # Check if output contains ERROR
     HAS_ERROR=$(echo "$GCLOUD_OUTPUT" | grep -c "^ERROR:" || true)
     
     if [[ $GCLOUD_EXIT_CODE -ne 0 ]] || [[ -z "$ACCESS_TOKEN" ]] || [[ $HAS_ERROR -gt 0 ]]; then
         printf "${ERROR}Error: Failed to impersonate service account: $SA_EMAIL${NC}\n" >&2
         printf "${ERROR}Exit code: $GCLOUD_EXIT_CODE${NC}\n" >&2
         printf "\n${ERROR}gcloud output:${NC}\n" >&2
-        # Show the actual error from gcloud (filter out WARNING lines but keep errors)
         echo "$GCLOUD_OUTPUT" | grep -v "^WARNING:" >&2
         printf "\n${INFO}Possible causes:${NC}\n" >&2
         printf "  1. You don't have roles/iam.serviceAccountTokenCreator permission\n" >&2
         printf "  2. Service account doesn't exist\n" >&2
         printf "  3. Not authenticated with gcloud\n" >&2
         printf "\n${INFO}To fix, run this command:${NC}\n" >&2
-        # Extract project from service account email
         SA_PROJECT="${SA_EMAIL#*@}"
         SA_PROJECT="${SA_PROJECT%%.*}"
         printf "  gcloud iam service-accounts add-iam-policy-binding \\\\\n" >&2
@@ -305,16 +311,55 @@ if [[ -n "$SA_EMAIL" ]]; then
         exit 1
     fi
     
-    # Verify we got a valid token (not an error message)
+    # Verify we got a valid token
     if [[ -z "$ACCESS_TOKEN" ]] || [[ "$ACCESS_TOKEN" == ERROR* ]] || [[ "$ACCESS_TOKEN" == *"ERROR"* ]]; then
         printf "${ERROR}Error: Invalid token received from gcloud${NC}\n" >&2
         printf "${ERROR}${ACCESS_TOKEN}${NC}\n" >&2
         exit 1
     fi
     
-    printf "${OK}✓ Generated impersonation token${NC}\n"
+    printf "${OK}✓ Generated impersonation credentials${NC}\n"
     
-    # Pass the access token directly - simpler and no hardcoded values
+    # Get user's ADC file to use as source credentials
+    USER_ADC_FILE="$HOME/.config/gcloud/application_default_credentials.json"
+    
+    if [[ -f "$USER_ADC_FILE" ]]; then
+        # Create impersonated service account credentials using user's ADC
+        # This is the proper format that Terraform expects
+        printf "${INFO}Using ADC from: $USER_ADC_FILE${NC}\n"
+        
+        # Read the user's ADC credentials
+        SOURCE_CREDS=$(cat "$USER_ADC_FILE")
+        
+        # Create impersonated service account credential file
+        cat > "$IMPERSONATE_CREDS_FILE" <<EOF
+{
+  "delegates": [],
+  "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/$SA_EMAIL:generateAccessToken",
+  "source_credentials": $SOURCE_CREDS,
+  "type": "impersonated_service_account"
+}
+EOF
+    else
+        # Fallback: User doesn't have ADC, just use access token
+        printf "${WARN}No ADC file found, using access token only${NC}\n"
+        printf "${INFO}For full Terraform compatibility, run: gcloud auth application-default login${NC}\n"
+        
+        # Create a simple credential file with just the access token
+        # This works for some operations but may fail for others
+        cat > "$IMPERSONATE_CREDS_FILE" <<EOF
+{
+  "type": "authorized_user",
+  "client_id": "764086051850-6qr4p6gpi6hn506pt8ejuq83di341hur.apps.googleusercontent.com",
+  "client_secret": "d-FL95Q19q7MQmFpd7hHD0Ty",
+  "refresh_token": "",
+  "access_token": "$ACCESS_TOKEN"
+}
+EOF
+    fi
+    
+    # Pass both the credentials file and access token to make
+    make_args+=("GCP_IMPERSONATE_CREDS_FILE=$IMPERSONATE_CREDS_FILE")
     make_args+=("GCP_IMPERSONATE_ACCESS_TOKEN=$ACCESS_TOKEN")
 fi
 

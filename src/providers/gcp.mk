@@ -12,6 +12,7 @@
 CONFIG_DIR ?= $(PWD)
 GCP_SA_KEY_PATH ?=
 GCP_SA_TOKEN_PATH ?=
+GCP_IMPERSONATE_CREDS_FILE ?=
 GCP_IMPERSONATE_ACCESS_TOKEN ?=
 
 # Default file paths
@@ -52,11 +53,12 @@ else ifneq ($(wildcard $(GCP_CREDS_PATH_CONFIG)),)
   GCP_VOLUME = -v $(GCP_CREDS_PATH_CONFIG):/home/udx/gcp-credentials.json
   GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-credentials.json
   GCP_CRED_INFO = "🎫 GCP Auth: Workload Identity Token ($(GCP_CREDS_PATH_CONFIG))"
-else ifneq ($(GCP_IMPERSONATE_ACCESS_TOKEN),)
-  # Impersonation: access token passed as environment variable
-  GCP_VOLUME = 
-  GCP_ENV = -e CLOUDSDK_AUTH_ACCESS_TOKEN=$(GCP_IMPERSONATE_ACCESS_TOKEN)
-  GCP_CRED_INFO = "👤 GCP Auth: Impersonation Token (gcloud CLI only)"
+else ifneq ($(GCP_IMPERSONATE_CREDS_FILE),)
+  # Impersonation: ADC credentials file + access token
+  # Credentials file works with Terraform/SDKs, access token works with gcloud
+  GCP_VOLUME = -v $(GCP_IMPERSONATE_CREDS_FILE):/home/udx/gcp-impersonate.json:ro
+  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=/home/udx/gcp-impersonate.json -e CLOUDSDK_AUTH_ACCESS_TOKEN=$(GCP_IMPERSONATE_ACCESS_TOKEN)
+  GCP_CRED_INFO = "👤 GCP Auth: Impersonated Service Account (Terraform/SDK/gcloud compatible)"
 else
   GCP_VOLUME = 
   GCP_ENV = 

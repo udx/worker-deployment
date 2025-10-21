@@ -20,13 +20,15 @@ npm install -g @udx/worker-deployment
 ## Quick Start
 
 ```bash
-# Install
+# 1. Install
 npm install -g @udx/worker-deployment
 
-# Generate config
+# 2. Generate default config template
 worker-config
 
-# Edit deploy.yml, then run
+# 3. Edit deploy.yml with your settings
+
+# 4. Run your container
 worker-run
 ```
 
@@ -34,58 +36,11 @@ worker-run
 
 ## GCP Authentication
 
-The tool supports **three authentication methods** to work seamlessly in any environment:
+The tool supports **three authentication methods**:
 
-1. **Service Account Key** - Manual key file (local dev)
-2. **Workload Identity Federation** - Keyless auth (GitHub Actions)
-3. **Service Account Impersonation** - Use your user credentials (local dev)
+### 🎯 Recommended: Service Account Impersonation (Local Dev)
 
-### Method 1: Service Account Key (Local Development)
-
-Create a service account key and save it as `gcp-key.json`:
-
-```bash
-# 1. Create a service account (one-time)
-gcloud iam service-accounts create dev-worker \
-  --display-name="Local Development Worker"
-
-# 2. Grant necessary permissions
-gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
-  --member="serviceAccount:dev-worker@YOUR_PROJECT_ID.iam.gserviceaccount.com" \
-  --role="roles/editor"
-
-# 3. Create and download key
-gcloud iam service-accounts keys create gcp-key.json \
-  --iam-account=dev-worker@YOUR_PROJECT_ID.iam.gserviceaccount.com
-
-# 4. Run your container
-worker-run
-```
-
-**Security tip:** Add `gcp-key.json` to `.gitignore` and delete the key from Google Cloud when done.
-
-### Method 2: Workload Identity Federation (GitHub Actions)
-
-Use keyless authentication with Workload Identity Federation:
-
-```yaml
-- name: Authenticate to Google Cloud
-  id: auth
-  uses: google-github-actions/auth@v3
-  with:
-    workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
-    service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
-
-- name: Deploy
-  run: |
-    # Copy the generated credentials to gcp-credentials.json
-    cp ${{ steps.auth.outputs.credentials_file_path }} gcp-credentials.json
-    worker-run
-```
-
-### Method 3: Service Account Impersonation (Local Development)
-
-Use your own gcloud credentials to impersonate a service account:
+Use your gcloud credentials - no key files needed!
 
 ```yaml
 # In deploy.yml
@@ -94,9 +49,9 @@ config:
     email: "my-sa@my-project.iam.gserviceaccount.com"
 ```
 
-**Setup (one-time):**
+**One-time setup:**
 ```bash
-# 1. Authenticate with your user account
+# 1. Authenticate
 gcloud auth login
 
 # 2. Grant yourself impersonation permission
@@ -106,68 +61,66 @@ gcloud iam service-accounts add-iam-policy-binding \
   --role="roles/iam.serviceAccountTokenCreator" \
   --project=MY_PROJECT
 
-# 3. Run deployment
+# 3. Run
 worker-run
 ```
 
-**Benefits:**
-- ✅ No key files to manage
-- ✅ Uses your existing gcloud auth
-- ✅ Temporary tokens (1 hour)
-- ✅ Easy permission management
+**Why use this?** ✅ No key files ✅ Temporary tokens ✅ Easy permission management
 
-**Note:** Impersonation only works with `gcloud` CLI commands. For Terraform/SDKs, use Method 1 or 2.
+**Note:** Works with `gcloud` CLI only. For Terraform/SDKs, use a key file.
+
+---
+
+### 📁 Service Account Key (Alternative)
+
+If you already have a service account key:
+
+```bash
+# Save as gcp-key.json in your project directory
+worker-run
+```
+
+Or specify custom path in `deploy.yml`:
+```yaml
+config:
+  service_account:
+    key_path: "./secrets/my-key.json"
+```
+
+---
+
+### 🔐 Workload Identity Federation (GitHub Actions)
+
+Keyless authentication for CI/CD:
+
+```yaml
+- uses: google-github-actions/auth@v3
+  id: auth
+  with:
+    workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+    service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+- run: |
+    cp ${{ steps.auth.outputs.credentials_file_path }} gcp-credentials.json
+    worker-run
+```
+
+Or specify custom path:
+```yaml
+config:
+  service_account:
+    token_path: "./credentials/gcp-token.json"
+```
 
 ---
 
 ### Authentication Priority
 
-The tool checks for credentials in this order:
+The tool checks credentials in this order:
+1. **Config-specified** (`service_account.email`, `key_path`, or `token_path`)
+2. **Default files** (`gcp-key.json` or `gcp-credentials.json` in current/config directory)
 
-1. Config-specified paths (`service_account.key_path` or `service_account.token_path`)
-2. `gcp-key.json` in current or config directory
-3. `gcp-credentials.json` in current or config directory
-4. Service account impersonation (`service_account.email`)
-
-### Advanced: Config-Based Authentication
-
-Override default paths or use impersonation in your `deploy.yml`:
-
-```yaml
-config:
-  # Option 1: Custom key file path
-  service_account:
-    key_path: "./secrets/my-service-account.json"
-
-  # Option 2: Custom token file path
-  service_account:
-    token_path: "./credentials/gcp-token.json"
-
-  # Option 3: Impersonate a service account (requires gcloud auth on host)
-  service_account:
-    email: "my-sa@my-project.iam.gserviceaccount.com"
-```
-
-**Use cases:**
-- Custom credential file locations
-- Multiple deployment configs with different credentials
-- Shared team configurations
-
-## How It Works
-
-### Credential Detection
-
-The tool automatically:
-1. Detects available credentials (files or config)
-2. Mounts credential files into the container
-3. Sets appropriate environment variables (`GOOGLE_APPLICATION_CREDENTIALS`, `CLOUDSDK_AUTH_ACCESS_TOKEN`)
-4. Container has full GCP access
-
-### Why Not Mount `~/.config/gcloud`?
-
-**UID/GID Mismatch:** When containers run as non-root users (e.g., UID 500), they can't read host files owned by your user (e.g., UID 501). This causes permission errors.
-
-**Our solution:** Generate or copy credential files with correct ownership, avoiding permission issues entirely.
+**Default file locations work automatically** - no config needed!
 
 ## Commands
 
@@ -207,30 +160,7 @@ config:
 
 ## Examples
 
-### Run a Python Script with GCP Access
-
-```yaml
-config:
-  image: "python:3.9"
-  volumes:
-    - "./my-script.py:/app/script.py"
-    - "./requirements.txt:/app/requirements.txt"
-  command: "pip install -r /app/requirements.txt && python /app/script.py"
-```
-
-### Run Terraform with GCP Credentials
-
-```yaml
-config:
-  image: "hashicorp/terraform:latest"
-  volumes:
-    - "./terraform:/workspace"
-  env:
-    TF_VAR_project_id: "my-gcp-project"
-  command: "terraform init && terraform plan"
-```
-
-### Run UDX Worker
+### Basic UDX Worker
 
 ```yaml
 config:
@@ -239,7 +169,33 @@ config:
     - "./:/workspace"
   env:
     DEBUG: "true"
+    GCP_PROJECT: "my-project"
   command: "worker run my-task"
+```
+
+### UDX Worker with Custom Script
+
+```yaml
+config:
+  image: "usabilitydynamics/udx-worker:latest"
+  volumes:
+    - "./scripts:/workspace/scripts"
+    - "./data:/workspace/data"
+  env:
+    ENVIRONMENT: "production"
+  command: "bash /workspace/scripts/deploy.sh"
+```
+
+### UDX Worker with Service Account Impersonation
+
+```yaml
+config:
+  image: "usabilitydynamics/udx-worker:latest"
+  service_account:
+    email: "worker-sa@my-project.iam.gserviceaccount.com"
+  volumes:
+    - "./:/workspace"
+  command: "worker deploy --env=staging"
 ```
 
 ### Test Configuration Before Running

@@ -83,6 +83,40 @@ Use keyless authentication with Workload Identity Federation:
 - `gcp-key.json` → Local development (service account key)
 - `gcp-credentials.json` → GitHub Actions (Workload Identity token)
 
+### Advanced: Config-Based Authentication
+
+Override default paths or use impersonation in your `deploy.yml`:
+
+```yaml
+config:
+  # Option 1: Custom key file path
+  service_account:
+    key_path: "./secrets/my-service-account.json"
+
+  # Option 2: Custom token file path
+  service_account:
+    token_path: "./credentials/gcp-token.json"
+
+  # Option 3: Impersonate a service account (requires gcloud auth on host)
+  service_account:
+    email: "my-sa@my-project.iam.gserviceaccount.com"
+```
+
+**Impersonation setup:**
+```bash
+# One-time: Grant yourself impersonation rights
+gcloud iam service-accounts add-iam-policy-binding \
+  my-sa@my-project.iam.gserviceaccount.com \
+  --member="user:your-email@example.com" \
+  --role="roles/iam.serviceAccountTokenCreator"
+
+# Configure gcloud to impersonate
+gcloud config set auth/impersonate_service_account my-sa@my-project.iam.gserviceaccount.com
+
+# Then just run
+worker-run
+```
+
 ### Why Service Account Keys?
 
 **UID/GID Mismatch Issue:** Mounting local user credentials (`~/.config/gcloud`) doesn't work when the container runs as a non-root user (UID 500) because the host files are owned by a different UID (e.g., 501). This causes permission denied errors.

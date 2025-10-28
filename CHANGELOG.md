@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.1.1] - 2025-10-28
+
+### Fixed
+- Adjusted environment variable settings and volume mounts for GCP authentication
+
 ## [2.1.0] - 2025-10-21
 
 ### 🎯 Enhanced - Full Terraform/SDK Support for Impersonation

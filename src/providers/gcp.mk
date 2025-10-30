@@ -2,11 +2,9 @@
 # This module handles GCP authentication for containers
 #
 # Authentication Strategy:
-# - Service Account Key: Works for both local dev and CI/CD
-#   Sets both GCP_CREDS (for UDX workers) and GOOGLE_APPLICATION_CREDENTIALS (standard)
-#
-# Note: Local user credentials (ADC) are not supported due to UID/GID mismatch issues
-# when the container runs as a non-root user. Use service account keys instead.
+# All credential types (service account keys, workload identity tokens, impersonation)
+# are handled uniformly by setting GCP_CREDS. The worker's gcp.sh module automatically
+# detects credential type, normalizes service account keys, and sets GOOGLE_APPLICATION_CREDENTIALS.
 
 # Credential paths - config-specified or defaults
 CONFIG_DIR ?= $(PWD)
@@ -30,33 +28,33 @@ GCP_IMPERSONATE_CREDS_FILE_CONTAINER = /home/udx/gcp-impersonate.json
 # Priority: 1) Config-specified paths, 2) Default files, 3) Impersonation
 ifneq ($(GCP_SA_KEY_PATH),)
   # Config-specified key path
-  GCP_VOLUME = -v $(GCP_SA_KEY_PATH):$(GCP_KEY_PATH_CONTAINER)
+  GCP_VOLUME = -v $(GCP_SA_KEY_PATH):$(GCP_KEY_PATH_CONTAINER):ro
   GCP_ENV = -e GCP_CREDS=$(GCP_KEY_PATH_CONTAINER)
   GCP_CRED_INFO = "🔑 GCP Auth: Service Account Key (config: $(GCP_SA_KEY_PATH))"
 else ifneq ($(GCP_SA_TOKEN_PATH),)
   # Config-specified token path
-  GCP_VOLUME = -v $(GCP_SA_TOKEN_PATH):$(GCP_CREDS_PATH_CONTAINER)
-  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=$(GCP_CREDS_PATH_CONTAINER)
+  GCP_VOLUME = -v $(GCP_SA_TOKEN_PATH):$(GCP_CREDS_PATH_CONTAINER):ro
+  GCP_ENV = -e GCP_CREDS=$(GCP_CREDS_PATH_CONTAINER)
   GCP_CRED_INFO = "🎫 GCP Auth: Token (config: $(GCP_SA_TOKEN_PATH))"
 else ifneq ($(wildcard $(GCP_KEY_PATH_PWD)),)
   # Default: gcp-key.json in PWD
-  GCP_VOLUME = -v $(GCP_KEY_PATH_PWD):$(GCP_KEY_PATH_CONTAINER)
+  GCP_VOLUME = -v $(GCP_KEY_PATH_PWD):$(GCP_KEY_PATH_CONTAINER):ro
   GCP_ENV = -e GCP_CREDS=$(GCP_KEY_PATH_CONTAINER)
   GCP_CRED_INFO = "🔑 GCP Auth: Service Account Key ($(GCP_KEY_PATH_PWD))"
 else ifneq ($(wildcard $(GCP_KEY_PATH_CONFIG)),)
   # Default: gcp-key.json in config dir
-  GCP_VOLUME = -v $(GCP_KEY_PATH_CONFIG):$(GCP_KEY_PATH_CONTAINER)
+  GCP_VOLUME = -v $(GCP_KEY_PATH_CONFIG):$(GCP_KEY_PATH_CONTAINER):ro
   GCP_ENV = -e GCP_CREDS=$(GCP_KEY_PATH_CONTAINER)
   GCP_CRED_INFO = "🔑 GCP Auth: Service Account Key ($(GCP_KEY_PATH_CONFIG))"
 else ifneq ($(wildcard $(GCP_CREDS_PATH_PWD)),)
   # Default: gcp-credentials.json in PWD
-  GCP_VOLUME = -v $(GCP_CREDS_PATH_PWD):$(GCP_CREDS_PATH_CONTAINER)
-  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=$(GCP_CREDS_PATH_CONTAINER)
+  GCP_VOLUME = -v $(GCP_CREDS_PATH_PWD):$(GCP_CREDS_PATH_CONTAINER):ro
+  GCP_ENV = -e GCP_CREDS=$(GCP_CREDS_PATH_CONTAINER)
   GCP_CRED_INFO = "🎫 GCP Auth: Workload Identity Token ($(GCP_CREDS_PATH_PWD))"
 else ifneq ($(wildcard $(GCP_CREDS_PATH_CONFIG)),)
   # Default: gcp-credentials.json in config dir
-  GCP_VOLUME = -v $(GCP_CREDS_PATH_CONFIG):$(GCP_CREDS_PATH_CONTAINER)
-  GCP_ENV = -e GOOGLE_APPLICATION_CREDENTIALS=$(GCP_CREDS_PATH_CONTAINER)
+  GCP_VOLUME = -v $(GCP_CREDS_PATH_CONFIG):$(GCP_CREDS_PATH_CONTAINER):ro
+  GCP_ENV = -e GCP_CREDS=$(GCP_CREDS_PATH_CONTAINER)
   GCP_CRED_INFO = "🎫 GCP Auth: Workload Identity Token ($(GCP_CREDS_PATH_CONFIG))"
 else ifneq ($(GCP_IMPERSONATE_CREDS_FILE),)
   # Impersonation: ADC credentials file + access token

@@ -2,6 +2,36 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.2.0] - 2025-10-30
+
+### 🎯 Enhanced - Simplified Authentication Architecture
+
+### Changed
+- **Unified Authentication Approach** - Simplified GCP credential handling by delegating to worker image
+  - All credential types (service account keys, workload identity tokens, impersonation) now use single `GCP_CREDS` environment variable
+  - Worker's `gcp.sh` module handles credential type detection, normalization, and `GOOGLE_APPLICATION_CREDENTIALS` setup
+  - Removed complex dual-variable approach for impersonation
+  - Cleaner, more maintainable implementation
+
+### Technical Details
+- Simplified `src/providers/gcp.mk` to use unified `GCP_CREDS` variable for all authentication methods
+- Worker image now handles all credential normalization (private_key escaping, type detection, etc.)
+- Reduced complexity in deployment tool by centralizing auth logic in worker
+- Maintains full backward compatibility with all three authentication methods
+
+### Benefits
+- **Simpler codebase** - Less authentication logic in deployment tool
+- **Single source of truth** - Worker image controls authentication behavior
+- **Better maintainability** - Authentication changes only need to happen in worker image
+- **Consistent behavior** - All tools using worker get same authentication handling
+
+---
+
+## [2.1.1] - 2025-10-28
+
+### Fixed
+- Adjusted environment variable settings and volume mounts for GCP authentication
+
 ## [2.1.0] - 2025-10-21
 
 ### 🎯 Enhanced - Full Terraform/SDK Support for Impersonation

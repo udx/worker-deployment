@@ -178,9 +178,9 @@ if [[ "$WORKER_IMAGE" == "null" || -z "$WORKER_IMAGE" ]]; then
     exit 1
 fi
 
-if [[ "$COMMAND" == "null" || -z "$COMMAND" ]]; then
-    printf "${ERROR}Error: 'config.command' is required in configuration file${NC}\n" >&2
-    exit 1
+# Command is optional - if not specified, container will use its default CMD/ENTRYPOINT
+if [[ "$COMMAND" == "null" ]]; then
+    COMMAND=""
 fi
 
 # Build volumes from config

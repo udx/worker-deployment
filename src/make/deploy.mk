@@ -41,7 +41,11 @@ run:
 	@echo "Running worker deployment..."
 	@echo $(CRED_INFO)
 	@echo "Image: $(WORKER_IMAGE)"
+ifneq ($(COMMAND),)
 	@echo "Command: $(COMMAND)"
+else
+	@echo "Command: <using container default>"
+endif
 ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "🔍 DRY RUN - Would execute:"
@@ -51,11 +55,14 @@ ifeq ($(DRY_RUN),true)
 	@echo "    $(ENV_VARS) \\"
 	@echo "    $(CLOUD_ENV) \\"
 	@echo "    $(WORKER_IMAGE) \\"
+ifneq ($(COMMAND),)
 	@echo "    $(COMMAND) \\"
+endif
 	@echo "    $(ARGS)"
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else
+ifneq ($(COMMAND),)
 	@docker run --rm \
 		$(VOLUMES) \
 		$(CLOUD_VOLUMES) \
@@ -64,6 +71,15 @@ else
 		$(WORKER_IMAGE) \
 		$(COMMAND) \
 		$(ARGS)
+else
+	@docker run --rm \
+		$(VOLUMES) \
+		$(CLOUD_VOLUMES) \
+		$(ENV_VARS) \
+		$(CLOUD_ENV) \
+		$(WORKER_IMAGE) \
+		$(ARGS)
+endif
 endif
 
 # Run interactive target
@@ -71,7 +87,11 @@ run-it:
 	@echo "Running worker deployment (interactive)..."
 	@echo $(CRED_INFO)
 	@echo "Image: $(WORKER_IMAGE)"
+ifneq ($(COMMAND),)
 	@echo "Command: $(COMMAND)"
+else
+	@echo "Command: <using container default>"
+endif
 ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "🔍 DRY RUN - Would execute (interactive):"
@@ -81,11 +101,14 @@ ifeq ($(DRY_RUN),true)
 	@echo "    $(ENV_VARS) \\"
 	@echo "    $(CLOUD_ENV) \\"
 	@echo "    $(WORKER_IMAGE) \\"
+ifneq ($(COMMAND),)
 	@echo "    $(COMMAND) \\"
+endif
 	@echo "    $(ARGS)"
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else
+ifneq ($(COMMAND),)
 	@docker run --rm -it \
 		$(VOLUMES) \
 		$(CLOUD_VOLUMES) \
@@ -94,4 +117,13 @@ else
 		$(WORKER_IMAGE) \
 		$(COMMAND) \
 		$(ARGS)
+else
+	@docker run --rm -it \
+		$(VOLUMES) \
+		$(CLOUD_VOLUMES) \
+		$(ENV_VARS) \
+		$(CLOUD_ENV) \
+		$(WORKER_IMAGE) \
+		$(ARGS)
+endif
 endif

@@ -2,6 +2,34 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.3.0] - 2025-10-31
+
+### 🎯 Enhanced - Optional Command Parameter
+
+### Changed
+- **Command Parameter Now Optional** - Containers can now run with their default CMD/ENTRYPOINT
+  - If `command` is not specified in `deploy.yml`, the container's default command will be used
+  - Useful for containers with well-defined default behavior
+  - Display shows `<using container default>` when no command is specified
+  - Dry-run output correctly reflects whether command is present or using default
+
+### Added
+- **New Example** - Added documentation example showing usage without command parameter
+- **Enhanced Guidance** - Updated config template and help text to indicate command is optional
+
+### Technical Details
+- Removed validation that required `command` field in `deploy.sh`
+- Updated `deploy.mk` with conditional logic to only include command in docker run when present
+- Both `run` and `run-it` targets handle empty command gracefully
+- Config template includes helpful comment explaining optional nature
+
+### Benefits
+- **More Flexible** - Can deploy containers that have their own default commands
+- **Cleaner Configs** - No need to specify command when container default is sufficient
+- **Better UX** - Clear indication when using container defaults vs custom commands
+
+---
+
 ## [2.2.0] - 2025-10-30
 
 ### 🎯 Enhanced - Simplified Authentication Architecture

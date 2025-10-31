@@ -11,6 +11,7 @@ config:
   volumes:
     - "./:/workspace"
 
+  # Command to run (optional - if not specified, uses container's default CMD/ENTRYPOINT)
   command: "echo 'Hello from worker container! Edit this command in deploy.yml'"
 
   # Additional arguments to pass to the command (optional)

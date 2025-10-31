@@ -154,7 +154,7 @@ config:
     DEBUG: "true"
     PROJECT_NAME: "my-project"
 
-  # Command to run
+  # Command to run (optional - if not specified, uses container's default CMD/ENTRYPOINT)
   command: "bash /workspace/src/my-script.sh"
 ```
 
@@ -196,6 +196,18 @@ config:
   volumes:
     - "./:/workspace"
   command: "worker deploy --env=staging"
+```
+
+### Using Container's Default Command
+
+```yaml
+config:
+  image: "usabilitydynamics/udx-worker:latest"
+  volumes:
+    - "./:/workspace"
+  env:
+    GCP_PROJECT: "my-project"
+  # No command specified - uses container's default CMD/ENTRYPOINT
 ```
 
 ### Test Configuration Before Running

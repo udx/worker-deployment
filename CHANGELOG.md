@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.4.0] - 2025-11-04
+
+### 🎯 Enhanced - Added Ports Support
+
+### Changed
+- **Ports Parameter now supported** - Containers can now can be deployed with specified ports
+  - If `ports` is not specified in `deploy.yml`, the container's default ports will be used
+
+### Technical Details
+- Updated `deploy.mk` with conditional logic to only include ports in docker run when present
+- Both `run` and `run-it` targets handle empty ports gracefully
+
+### Benefits
+- **More Flexible** - Can deploy containers that have their own default ports
+- **Better UX** - Clear indication when using container defaults vs custom ports
+
 ## [2.3.0] - 2025-10-31
 
 ### 🎯 Enhanced - Optional Command Parameter

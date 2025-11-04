@@ -228,6 +228,14 @@ if [[ "$env_count" != "0" ]]; then
     done <<< "$env_keys"
 fi
 
+# Parse ports from config
+PORTS=""
+port_count=$(yq eval '.config.ports | length' "$config_file")
+for ((i=0; i<port_count; i++)); do
+    port=$(yq eval ".config.ports[$i]" "$config_file")
+    PORTS="$PORTS -p $port"
+done
+
 # Build arguments from config
 ARGS=""
 args_count=$(yq eval '.config.args | length' "$config_file")
@@ -241,6 +249,7 @@ make_args+=("WORKER_IMAGE=$WORKER_IMAGE")
 make_args+=("COMMAND=$COMMAND")
 make_args+=("VOLUMES=$VOLUMES")
 make_args+=("ENV_VARS=$ENV_VARS")
+make_args+=("PORTS=$PORTS")
 make_args+=("ARGS=$ARGS")
 
 # Pass service account config to make

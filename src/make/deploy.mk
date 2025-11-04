@@ -5,6 +5,7 @@ WORKER_IMAGE ?=
 COMMAND ?=
 VOLUMES ?=
 ENV_VARS ?=
+PORTS ?=
 ARGS ?=
 DRY_RUN ?= false
 
@@ -53,6 +54,7 @@ ifeq ($(DRY_RUN),true)
 	@echo "    $(VOLUMES) \\"
 	@echo "    $(CLOUD_VOLUMES) \\"
 	@echo "    $(ENV_VARS) \\"
+	@echo "    $(PORTS) \\"
 	@echo "    $(CLOUD_ENV) \\"
 	@echo "    $(WORKER_IMAGE) \\"
 ifneq ($(COMMAND),)
@@ -67,6 +69,7 @@ ifneq ($(COMMAND),)
 		$(VOLUMES) \
 		$(CLOUD_VOLUMES) \
 		$(ENV_VARS) \
+		$(PORTS) \
 		$(CLOUD_ENV) \
 		$(WORKER_IMAGE) \
 		$(COMMAND) \
@@ -76,6 +79,7 @@ else
 		$(VOLUMES) \
 		$(CLOUD_VOLUMES) \
 		$(ENV_VARS) \
+		$(PORTS) \
 		$(CLOUD_ENV) \
 		$(WORKER_IMAGE) \
 		$(ARGS)
@@ -99,6 +103,7 @@ ifeq ($(DRY_RUN),true)
 	@echo "    $(VOLUMES) \\"
 	@echo "    $(CLOUD_VOLUMES) \\"
 	@echo "    $(ENV_VARS) \\"
+	@echo "    $(PORTS) \\"
 	@echo "    $(CLOUD_ENV) \\"
 	@echo "    $(WORKER_IMAGE) \\"
 ifneq ($(COMMAND),)
@@ -113,6 +118,7 @@ ifneq ($(COMMAND),)
 		$(VOLUMES) \
 		$(CLOUD_VOLUMES) \
 		$(ENV_VARS) \
+		$(PORTS) \
 		$(CLOUD_ENV) \
 		$(WORKER_IMAGE) \
 		$(COMMAND) \
@@ -122,6 +128,7 @@ else
 		$(VOLUMES) \
 		$(CLOUD_VOLUMES) \
 		$(ENV_VARS) \
+		$(PORTS) \
 		$(CLOUD_ENV) \
 		$(WORKER_IMAGE) \
 		$(ARGS)

@@ -14,6 +14,10 @@ config:
   # Command to run (optional - if not specified, uses container's default CMD/ENTRYPOINT)
   command: "echo 'Hello from worker container! Edit this command in deploy.yml'"
 
+  # Ports to expose (optional)
+  # ports:
+  #   - "80:80"
+
   # Additional arguments to pass to the command (optional)
   # args:
   #   - "--verbose"

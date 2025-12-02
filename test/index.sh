@@ -58,6 +58,84 @@ test_gcp_auth_methods() {
 # Run GCP auth tests
 test_gcp_auth_methods
 
+# Test network configuration
+test_network_config() {
+    echo "🌐 Testing Network Configuration..."
+    echo ""
+    
+    mkdir -p /tmp/test-network
+    cd /tmp/test-network
+    
+    # Create a test config with network setting
+    cat > test-deploy.yml <<EOF
+---
+kind: workerDeployConfig
+version: udx.io/worker-v1/deploy
+config:
+  image: "alpine:latest"
+  command: "echo 'Testing network configuration'"
+  network: "host"
+  volumes:
+    - "./:/workspace"
+EOF
+    
+    echo "Testing network configuration with --dry-run..."
+    "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run
+    echo ""
+    
+    # Verify the output contains --network flag
+    if "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run 2>&1 | grep -q "\-\-network host"; then
+        echo "✅ Network configuration test passed!"
+    else
+        echo "❌ Network configuration test failed - --network flag not found in output"
+        exit 1
+    fi
+    
+    echo ""
+}
+
+# Run network test
+test_network_config
+
+# Test container name configuration
+test_container_name_config() {
+    echo "🏷️  Testing Container Name Configuration..."
+    echo ""
+    
+    mkdir -p /tmp/test-container-name
+    cd /tmp/test-container-name
+    
+    # Create a test config with container_name setting
+    cat > test-deploy.yml <<EOF
+---
+kind: workerDeployConfig
+version: udx.io/worker-v1/deploy
+config:
+  image: "alpine:latest"
+  command: "echo 'Testing container name configuration'"
+  container_name: "test-worker-123"
+  volumes:
+    - "./:/workspace"
+EOF
+    
+    echo "Testing container_name configuration with --dry-run..."
+    "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run
+    echo ""
+    
+    # Verify the output contains --name flag
+    if "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run 2>&1 | grep -q "\-\-name test-worker-123"; then
+        echo "✅ Container name configuration test passed!"
+    else
+        echo "❌ Container name configuration test failed - --name flag not found in output"
+        exit 1
+    fi
+    
+    echo ""
+}
+
+# Run container name test
+test_container_name_config
+
 # Original comprehensive test (keep for backward compatibility)
 echo "🔄 Running comprehensive integration test..."
 mkdir -p /tmp/test-gcp
@@ -97,5 +175,5 @@ echo "✅ All tests completed successfully!"
 
 # Cleanup test directories
 echo "🧹 Cleaning up test directories..."
-rm -rf /tmp/test-gcp-key /tmp/test-gcp-creds /tmp/test-gcp-local /tmp/test-gcp
+rm -rf /tmp/test-gcp-key /tmp/test-gcp-creds /tmp/test-gcp-local /tmp/test-gcp /tmp/test-network /tmp/test-container-name
 echo "✅ Cleanup completed!"

@@ -2,26 +2,43 @@
 kind: workerDeployConfig
 version: udx.io/worker-v1/deploy
 config:
+  # Docker image to run (required)
   image: "usabilitydynamics/udx-worker:latest"
 
+  # Environment variables (optional)
   env:
     DEBUG: "true"
     PROJECT_NAME: "my-project"
 
+  # Volume mounts (optional)
+  # Format: "host_path:container_path" or "host_path:container_path:ro" for read-only
   volumes:
     - "./:/workspace"
+    # - "./data:/data:ro"
 
   # Command to run (optional - if not specified, uses container's default CMD/ENTRYPOINT)
   command: "echo 'Hello from worker container! Edit this command in deploy.yml'"
-
-  # Ports to expose (optional)
-  # ports:
-  #   - "80:80"
 
   # Additional arguments to pass to the command (optional)
   # args:
   #   - "--verbose"
   #   - "--output=/workspace/outputs"
+
+  # Ports to expose (optional)
+  # Format: "host_port:container_port" or "container_port"
+  # ports:
+  #   - "8080:80"
+  #   - "443:443"
+
+  # Docker network to use (optional)
+  # Useful for connecting to other containers or custom networks
+  # network: "my-custom-network"
+  # network: "host"
+  # network: "bridge"
+
+  # Container name (optional)
+  # If not specified, Docker will auto-generate a random name
+  # container_name: "my-worker-container"
 
   # GCP Service Account Configuration (optional)
   # If not specified, tool looks for gcp-key.json or gcp-credentials.json

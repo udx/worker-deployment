@@ -166,6 +166,8 @@ printf "${INFO}Using configuration: $config_file${NC}\n"
 # Parse YAML configuration
 WORKER_IMAGE=$(yq eval '.config.image' "$config_file")
 COMMAND=$(yq eval '.config.command' "$config_file")
+NETWORK=$(yq eval '.config.network // ""' "$config_file")
+CONTAINER_NAME=$(yq eval '.config.container_name // ""' "$config_file")
 
 # Parse service account configuration (optional)
 SA_KEY_PATH=$(yq eval '.config.service_account.key_path // ""' "$config_file")
@@ -181,6 +183,22 @@ fi
 # Command is optional - if not specified, container will use its default CMD/ENTRYPOINT
 if [[ "$COMMAND" == "null" ]]; then
     COMMAND=""
+fi
+
+# Network is optional - if not specified, container will use its default network
+if [[ "$NETWORK" == "null" || -z "$NETWORK" ]]; then
+    NETWORK=""
+else
+    # Format network with --network flag
+    NETWORK="--network $NETWORK"
+fi
+
+# Container name is optional - if not specified, Docker will auto-generate a name
+if [[ "$CONTAINER_NAME" == "null" || -z "$CONTAINER_NAME" ]]; then
+    CONTAINER_NAME=""
+else
+    # Format container name with --name flag
+    CONTAINER_NAME="--name $CONTAINER_NAME"
 fi
 
 # Build volumes from config
@@ -250,6 +268,8 @@ make_args+=("COMMAND=$COMMAND")
 make_args+=("VOLUMES=$VOLUMES")
 make_args+=("ENV_VARS=$ENV_VARS")
 make_args+=("PORTS=$PORTS")
+make_args+=("NETWORK=$NETWORK")
+make_args+=("CONTAINER_NAME=$CONTAINER_NAME")
 make_args+=("ARGS=$ARGS")
 
 # Pass service account config to make
@@ -309,7 +329,8 @@ if [[ -n "$SA_EMAIL" ]]; then
         printf "  1. You don't have roles/iam.serviceAccountTokenCreator permission\n" >&2
         printf "  2. Service account doesn't exist\n" >&2
         printf "  3. Not authenticated with gcloud\n" >&2
-        printf "\n${INFO}To fix, run this command:${NC}\n" >&2
+        printf "\n${INFO}To fix, run this 
+        :${NC}\n" >&2
         SA_PROJECT="${SA_EMAIL#*@}"
         SA_PROJECT="${SA_PROJECT%%.*}"
         printf "  gcloud iam service-accounts add-iam-policy-binding \\\\\n" >&2

@@ -8,7 +8,6 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - **Network Configuration** - Containers can now be deployed with custom Docker networks
-  - Support for custom networks, `host`, `bridge`, and other Docker network modes
   - Useful for connecting containers to existing networks or using host networking
   - If not specified, Docker uses default bridge network
   

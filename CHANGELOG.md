@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.5.0] - 2024-12-02
+
+### 🚀 Added - Network and Container Name Support
+
+### Added
+- **Network Configuration** - Containers can now be deployed with custom Docker networks
+  - Useful for connecting containers to existing networks or using host networking
+  - If not specified, Docker uses default bridge network
+  
+- **Container Name Configuration** - Containers can now have custom names
+  - Specify custom container names via `container_name` field
+  - If not specified, Docker auto-generates a random name
+  - Useful for container management and inter-container communication
+
+### Enhanced
+- **Comprehensive Config Template** - Updated `deploy.yml` template with:
+  - All supported configuration options documented
+  - Format specifications for volumes, ports, network, and container names
+  - Practical examples for each option
+  - Clear comments explaining optional vs required fields
+
+### Technical Details
+- Added `NETWORK` parsing and formatting with `--network` flag in `deploy.sh`
+- Added `CONTAINER_NAME` parsing and formatting with `--name` flag in `deploy.sh`
+- Updated `deploy.mk` to include network and container name in docker run commands
+- Both `run` and `run-it` targets display network and container name settings
+- Added test coverage for both network and container_name configurations
+
+### Benefits
+- **Better Networking** - Connect containers to custom networks or use host networking
+- **Easier Management** - Named containers are easier to identify and manage
+- **Complete Docker Support** - Now supports all common Docker run options
+- **Better Documentation** - Config template serves as comprehensive reference
+
+---
+
 ## [2.4.0] - 2025-11-04
 
 ### 🎯 Enhanced - Added Ports Support

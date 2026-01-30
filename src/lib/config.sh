@@ -20,11 +20,13 @@ OUTPUT_FILE="deploy.yml"
 for arg in "$@"; do
     case $arg in
         --output=*) OUTPUT_FILE="${arg#*=}" ;;
+        --force) FORCE_OVERWRITE=true ;;
         --help)
-            echo "Usage: $0 [--output=filename]"
+            echo "Usage: $0 [--output=filename] [--force]"
             echo ""
             echo "Options:"
             echo "  --output=FILE     Output config file (default: deploy.yml)"
+            echo "  --force           Overwrite existing file without prompt"
             echo "  --help           Show this help"
             echo ""
             echo "Generates a YAML configuration template for worker deployment."
@@ -40,7 +42,7 @@ done
 
 printf "${INFO}Generating config template: $OUTPUT_FILE${NC}\n"
 
-if [ -f "$OUTPUT_FILE" ]; then
+if [ -f "$OUTPUT_FILE" ] && [ "${FORCE_OVERWRITE:-}" != "true" ]; then
     printf "${WARN}Config file already exists: $OUTPUT_FILE${NC}\n"
     read -p "Overwrite existing file? [yN]: " REPLY
     if ! [[ $REPLY =~ ^[Yy]$ ]]; then
@@ -75,7 +77,7 @@ printf "   - Update the 'image' field with your Docker image\n"
 printf "   - Configure 'volumes' to mount your files\n"
 printf "   - Set your 'command' (optional - uses container default if omitted)\n"
 printf "   - Add any needed environment variables\n"
-printf "2. Test your configuration: worker-deploy-run --dry-run\n"
-printf "3. Run your deployment: worker-deploy-run\n"
+printf "2. Test your configuration: worker-run --dry-run\n"
+printf "3. Run your deployment: worker-run\n"
 printf "\n"
-printf "${INFO}💡 Tip: Use 'worker-deploy-run run-it' for interactive debugging${NC}\n"
+printf "${INFO}💡 Tip: Use 'worker-run run-it' for interactive debugging${NC}\n"

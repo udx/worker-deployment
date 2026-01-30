@@ -9,6 +9,15 @@ INFO='\033[0;36m'
 ERROR='\033[0;31m'
 NC='\033[0m'
 
+# Track temp files for cleanup
+IMPERSONATE_CREDS_FILE=""
+cleanup() {
+    if [[ -n "${IMPERSONATE_CREDS_FILE}" ]] && [[ -f "${IMPERSONATE_CREDS_FILE}" ]]; then
+        rm -f "${IMPERSONATE_CREDS_FILE}"
+    fi
+}
+trap cleanup EXIT
+
 # prefer gmake on macOS (brew install make), else fallback to make if it's GNU
 MAKE_BIN="make"
 if command -v gmake >/dev/null 2>&1; then
@@ -157,7 +166,7 @@ check_docker
 # Verify config file exists
 if [[ ! -f "$config_file" ]]; then
     printf "${ERROR}Error: Configuration file not found: $config_file${NC}\n" >&2
-    printf "${INFO}Generate a config file with: worker-deploy-config${NC}\n" >&2
+    printf "${INFO}Generate a config file with: worker-config${NC}\n" >&2
     exit 1
 fi
 
@@ -204,6 +213,7 @@ fi
 # Build volumes from config
 VOLUMES=""
 volume_count=$(yq eval '.config.volumes | length' "$config_file")
+PWD_CURRENT="$(pwd)"
 for ((i=0; i<volume_count; i++)); do
     volume=$(yq eval ".config.volumes[$i]" "$config_file")
     
@@ -211,8 +221,12 @@ for ((i=0; i<volume_count; i++)); do
     src_path="${volume%%:*}"
     dest_path="${volume#*:}"
     
-    # Expand shell variables like $(PWD)
-    src_path=$(eval echo "$src_path")
+    # Expand simple tokens only (avoid eval for safety)
+    src_path="${src_path/#\~/$HOME}"
+    src_path="${src_path//\$HOME/$HOME}"
+    src_path="${src_path//\$\{HOME\}/$HOME}"
+    src_path="${src_path//\$PWD/$PWD_CURRENT}"
+    src_path="${src_path//\$\{PWD\}/$PWD_CURRENT}"
     
     # Convert relative paths to absolute
     if [[ "$src_path" == ./* ]]; then

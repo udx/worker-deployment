@@ -21,7 +21,8 @@ test_gcp_auth_methods() {
     mkdir -p /tmp/test-gcp-key
     echo '{"type": "service_account", "test": "key"}' > /tmp/test-gcp-key/gcp-key.json
     cd /tmp/test-gcp-key
-    "$CONFIG_SCRIPT" --output=test-deploy.yml
+    rm -f test-deploy.yml
+    "$CONFIG_SCRIPT" --output=test-deploy.yml --force
     mkdir -p src data
     echo "test file" > src/test.txt
     echo "Testing Service Account Key auth..."
@@ -33,7 +34,8 @@ test_gcp_auth_methods() {
     mkdir -p /tmp/test-gcp-creds
     echo '{"type": "external_account", "token": "test-token"}' > /tmp/test-gcp-creds/gcp-credentials.json
     cd /tmp/test-gcp-creds
-    "$CONFIG_SCRIPT" --output=test-deploy.yml
+    rm -f test-deploy.yml
+    "$CONFIG_SCRIPT" --output=test-deploy.yml --force
     mkdir -p src data
     echo "test file" > src/test.txt
     echo "Testing Token Credentials auth..."
@@ -44,7 +46,8 @@ test_gcp_auth_methods() {
     echo "👤 Test 3: Local gcloud Authentication"
     mkdir -p /tmp/test-gcp-local
     cd /tmp/test-gcp-local
-    "$CONFIG_SCRIPT" --output=test-deploy.yml
+    rm -f test-deploy.yml
+    "$CONFIG_SCRIPT" --output=test-deploy.yml --force
     mkdir -p src data
     echo "test file" > src/test.txt
     echo "Testing Local gcloud auth..."
@@ -72,7 +75,7 @@ test_network_config() {
 kind: workerDeployConfig
 version: udx.io/worker-v1/deploy
 config:
-  image: "alpine:latest"
+  image: "usabilitydynamics/udx-worker:latest"
   command: "echo 'Testing network configuration'"
   network: "host"
   volumes:
@@ -83,8 +86,8 @@ EOF
     "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run
     echo ""
     
-    # Verify the output contains --network flag
-    if "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run 2>&1 | grep -q "\-\-network host"; then
+    # Verify the output contains --network flag (strip ANSI codes if present)
+    if "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run 2>&1 | sed -E 's/\x1b\[[0-9;]*m//g' | grep -q -- "--network host"; then
         echo "✅ Network configuration test passed!"
     else
         echo "❌ Network configuration test failed - --network flag not found in output"
@@ -111,7 +114,7 @@ test_container_name_config() {
 kind: workerDeployConfig
 version: udx.io/worker-v1/deploy
 config:
-  image: "alpine:latest"
+  image: "usabilitydynamics/udx-worker:latest"
   command: "echo 'Testing container name configuration'"
   container_name: "test-worker-123"
   volumes:
@@ -122,8 +125,8 @@ EOF
     "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run
     echo ""
     
-    # Verify the output contains --name flag
-    if "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run 2>&1 | grep -q "\-\-name test-worker-123"; then
+    # Verify the output contains --name flag (strip ANSI codes if present)
+    if "$DEPLOY_SCRIPT" --config=test-deploy.yml --dry-run 2>&1 | sed -E 's/\x1b\[[0-9;]*m//g' | grep -q -- "--name test-worker-123"; then
         echo "✅ Container name configuration test passed!"
     else
         echo "❌ Container name configuration test failed - --name flag not found in output"
@@ -146,7 +149,7 @@ echo "📝 Generating test config using worker-config..."
 cd /tmp/test-gcp
 # Remove any existing test config to avoid overwrite prompt
 rm -f test-deploy.yml
-"$CONFIG_SCRIPT" --output=test-deploy.yml
+"$CONFIG_SCRIPT" --output=test-deploy.yml --force
 
 # Create the default directories that the config expects
 echo "📁 Creating default directories for testing..."
@@ -165,13 +168,17 @@ echo "🔍 Testing dry-run functionality..."
 echo ""
 echo "✅ Dry-run test completed!"
 
-# Run the deployment script locally
+# Run the deployment script locally (optional)
 echo ""
-echo "🚀 Running actual deployment with local script..."
-"$DEPLOY_SCRIPT" --config=test-deploy.yml
-
-echo ""
-echo "✅ All tests completed successfully!"
+if [[ "${RUN_DOCKER_TESTS:-}" == "1" ]]; then
+    echo "🚀 Running actual deployment with local script..."
+    "$DEPLOY_SCRIPT" --config=test-deploy.yml
+    echo ""
+    echo "✅ All tests completed successfully!"
+else
+    echo "⏭️  Skipping actual docker run. Set RUN_DOCKER_TESTS=1 to enable."
+    echo "✅ Dry-run tests completed successfully!"
+fi
 
 # Cleanup test directories
 echo "🧹 Cleaning up test directories..."

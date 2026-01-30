@@ -9,8 +9,12 @@ INFO='\033[0;36m'
 ERROR='\033[0;31m'
 NC='\033[0m'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PKG_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+TEMPLATE_ROOT="$PKG_DIR/src/templates/worker-gen"
+
 show_help() {
-    echo "Usage: worker-gen <command> [options]"
+    echo "Usage: worker gen <command> [options]"
     echo ""
     echo "Commands:"
     echo "  repo                 Generate a child image repo skeleton"
@@ -35,9 +39,9 @@ show_help() {
     echo "  --dockerfile-only    Skip other repo files (same as dockerfile command)"
     echo ""
     echo "Examples:"
-    echo "  worker-gen repo --lang=node"
-    echo "  worker-gen dockerfile --lang=php --apply"
-    echo "  worker-gen worker.yaml --output-dir=.config/worker"
+    echo "  worker gen repo --lang=node"
+    echo "  worker gen dockerfile --lang=php --apply"
+    echo "  worker gen worker.yaml --output-dir=.config/worker"
 }
 
 SUBCOMMAND="${1:-}"
@@ -106,133 +110,58 @@ add_file() {
     printf "%s|%s\n" "$relpath" "$tmpfile" >> "$PLAN_FILE"
 }
 
-dockerfile_content() {
-    cat <<EOF
-# Use UDX Worker as the base image
-FROM ${BASE_IMAGE}
-
-LABEL maintainer="UDX"
-
-ENV APP_HOME="${APP_HOME}"
-
-USER root
-RUN mkdir -p "${APP_HOME}" && \\
-    chown -R "\${USER}:\${USER}" "${APP_HOME}" && \\
-    chmod -R 755 "${APP_HOME}"
-
-USER "\${USER}"
-WORKDIR "${APP_HOME}"
-
-# Use the parent image's entrypoint
-ENTRYPOINT ["/usr/local/worker/bin/entrypoint.sh"]
-
-# Default command (override in your runtime)
-CMD ["tail", "-f", "/dev/null"]
-EOF
+escape_sed() {
+    printf '%s' "$1" | sed -e 's/[\\/&]/\\&/g'
 }
 
-readme_content() {
-    cat <<EOF
-# ${NAME}
-
-Child image built on UDX Worker.
-
-## Build
-
-\`\`\`bash
-make build
-\`\`\`
-
-## Run
-
-\`\`\`bash
-make run
-\`\`\`
-
-## Notes
-
-- App home: ${APP_HOME}
-- Base image: ${BASE_IMAGE}
-EOF
+render_template() {
+    local template="$1"
+    local name_esc base_esc app_esc
+    name_esc="$(escape_sed "$NAME")"
+    base_esc="$(escape_sed "$BASE_IMAGE")"
+    app_esc="$(escape_sed "$APP_HOME")"
+    sed -e "s/{{NAME}}/${name_esc}/g" \
+        -e "s/{{BASE_IMAGE}}/${base_esc}/g" \
+        -e "s/{{APP_HOME}}/${app_esc}/g" \
+        "$template"
 }
 
-makefile_content() {
-    cat <<'EOF'
-IMAGE_NAME ?= usabilitydynamics/udx-worker-child:latest
-
-.PHONY: build run shell
-
-build:
-	docker build -t $(IMAGE_NAME) .
-
-run:
-	docker run --rm -it $(IMAGE_NAME)
-
-shell:
-	docker run --rm -it $(IMAGE_NAME) /bin/bash
-EOF
-}
-
-dockerignore_content() {
-    cat <<'EOF'
-.git
-.DS_Store
-node_modules
-dist
-build
-EOF
-}
-
-worker_yaml_content() {
-    cat <<'EOF'
-kind: workerConfig
-version: udx.io/worker-v1/config
-config:
-  env:
-    LOG_LEVEL: "info"
-  secrets:
-    # Example secret reference
-    # DB_PASSWORD: "gcp/my-project/db-password"
-EOF
-}
-
-services_yaml_content() {
-    cat <<'EOF'
-kind: workerService
-version: udx.io/worker-v1/service
-services:
-  - name: "example"
-    command: "bash -lc 'echo hello from worker service'"
-    autostart: true
-    autorestart: false
-    envs:
-      - "LOG_LEVEL=info"
-EOF
+add_template() {
+    local relpath="$1"
+    local template="$2"
+    local tmpfile
+    if [[ ! -f "$template" ]]; then
+        printf "${ERROR}Template not found: %s${NC}\n" "$template" >&2
+        exit 1
+    fi
+    tmpfile="$(mktemp "$TMP_DIR/file.XXXXXX")"
+    render_template "$template" > "$tmpfile"
+    printf "%s|%s\n" "$relpath" "$tmpfile" >> "$PLAN_FILE"
 }
 
 case "$SUBCOMMAND" in
     dockerfile)
-        add_file "Dockerfile" < <(dockerfile_content)
+        add_template "Dockerfile" "$TEMPLATE_ROOT/Dockerfile"
         ;;
     worker.yaml)
-        add_file "worker.yaml" < <(worker_yaml_content)
+        add_template "worker.yaml" "$TEMPLATE_ROOT/.config/worker/worker.yaml"
         ;;
     services.yaml)
-        add_file "services.yaml" < <(services_yaml_content)
+        add_template "services.yaml" "$TEMPLATE_ROOT/.config/worker/services.yaml"
         ;;
     repo)
         if [[ "$DOCKERFILE_ONLY" == "true" ]]; then
-            add_file "Dockerfile" < <(dockerfile_content)
+            add_template "Dockerfile" "$TEMPLATE_ROOT/Dockerfile"
         else
-            add_file "Dockerfile" < <(dockerfile_content)
-            add_file "README.md" < <(readme_content)
-            add_file "Makefile" < <(makefile_content)
-            add_file ".dockerignore" < <(dockerignore_content)
+            add_template "Dockerfile" "$TEMPLATE_ROOT/Dockerfile"
+            add_template "README.md" "$TEMPLATE_ROOT/README.md"
+            add_template "Makefile" "$TEMPLATE_ROOT/Makefile"
+            add_template ".dockerignore" "$TEMPLATE_ROOT/.dockerignore"
             if [[ "$WITH_WORKER_CONFIG" == "true" ]]; then
-                add_file ".config/worker/worker.yaml" < <(worker_yaml_content)
+                add_template ".config/worker/worker.yaml" "$TEMPLATE_ROOT/.config/worker/worker.yaml"
             fi
             if [[ "$WITH_SERVICES" == "true" ]]; then
-                add_file ".config/worker/services.yaml" < <(services_yaml_content)
+                add_template ".config/worker/services.yaml" "$TEMPLATE_ROOT/.config/worker/services.yaml"
             fi
         fi
         ;;

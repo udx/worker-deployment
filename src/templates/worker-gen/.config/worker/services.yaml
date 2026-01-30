@@ -1,0 +1,9 @@
+kind: workerService
+version: udx.io/worker-v1/service
+services:
+  - name: "example"
+    command: "bash -lc 'echo hello from worker service'"
+    autostart: true
+    autorestart: false
+    envs:
+      - "LOG_LEVEL=info"

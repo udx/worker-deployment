@@ -1,4 +1,4 @@
-# worker-gen
+# worker gen
 
 Generates child image scaffolding or config templates. Dry-run by default.
 

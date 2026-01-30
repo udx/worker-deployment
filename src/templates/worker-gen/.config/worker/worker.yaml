@@ -1,0 +1,8 @@
+kind: workerConfig
+version: udx.io/worker-v1/config
+config:
+  env:
+    LOG_LEVEL: "info"
+  secrets:
+    # Example secret reference
+    # DB_PASSWORD: "gcp/my-project/db-password"

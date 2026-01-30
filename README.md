@@ -1,12 +1,19 @@
 # Worker Deploy
 
 Run any Docker container with automatic cloud authentication.
-Requires Docker.
+Requires Node/npm and Docker.
 
 ## Installation
 
 ```bash
 npm install -g @udx/worker-deployment
+```
+
+## npx (no install)
+
+```bash
+npx @udx/worker-deployment worker-config
+npx @udx/worker-deployment worker-run
 ```
 
 ## Quick Start

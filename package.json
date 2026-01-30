@@ -3,10 +3,10 @@
   "version": "2.5.0",
   "description": "Docker container runner with YAML configuration and automatic GCP authentication (keys, Workload Identity, impersonation)",
   "bin": {
-    "worker-config": "src/lib/config.sh",
-    "worker-run": "src/lib/deploy.sh",
-    "worker-gen": "src/lib/gen.sh",
-    "worker-images": "src/lib/images.sh"
+    "worker-config": "src/lib/scripts/config.sh",
+    "worker-run": "src/lib/scripts/deploy.sh",
+    "worker-gen": "src/lib/scripts/gen.sh",
+    "worker-images": "src/lib/scripts/images.sh"
   },
   "scripts": {
     "test": "cd test && ./index.sh",

@@ -153,7 +153,7 @@ if [[ "$dry_run" == true ]]; then
     make_args+=("DRY_RUN=true")
 fi
 
-YAML_CLI="${SCRIPT_DIR}/yaml.js"
+YAML_CLI="${PKG_DIR}/lib/common/yaml.js"
 
 # Check dependencies
 check_yaml_parser

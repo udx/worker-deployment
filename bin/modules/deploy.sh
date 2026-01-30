@@ -198,6 +198,9 @@ CONTAINER_NAME=$(yaml_get '.config.container_name')
 SA_KEY_PATH=$(yaml_get '.config.service_account.key_path')
 SA_TOKEN_PATH=$(yaml_get '.config.service_account.token_path')
 SA_EMAIL=$(yaml_get '.config.service_account.email')
+if [[ "$SA_KEY_PATH" == "null" ]]; then SA_KEY_PATH=""; fi
+if [[ "$SA_TOKEN_PATH" == "null" ]]; then SA_TOKEN_PATH=""; fi
+if [[ "$SA_EMAIL" == "null" ]]; then SA_EMAIL=""; fi
 
 # Validate required fields
 if [[ "$WORKER_IMAGE" == "null" || -z "$WORKER_IMAGE" ]]; then
@@ -232,6 +235,9 @@ volume_count=$(yaml_length '.config.volumes')
 PWD_CURRENT="$(pwd)"
 for ((i=0; i<volume_count; i++)); do
     volume=$(yaml_get ".config.volumes[$i]")
+    if [[ "$volume" == "null" || -z "$volume" ]]; then
+        continue
+    fi
     
     # Extract source and destination paths
     src_path="${volume%%:*}"

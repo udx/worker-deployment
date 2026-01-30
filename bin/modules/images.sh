@@ -92,7 +92,10 @@ raw = sys.argv[1]
 if not raw.strip():
     sys.exit(0)
 data = json.loads(raw)
-items = data.get("items", data if isinstance(data, list) else [])
+if isinstance(data, list):
+    items = data
+else:
+    items = data.get("items", [])
 for item in items:
     name = item.get("name","")
     url = item.get("html_url") or item.get("url") or ""

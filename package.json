@@ -39,6 +39,8 @@
     "darwin",
     "linux"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "yaml": "^2.5.1"
+  },
   "devDependencies": {}
 }

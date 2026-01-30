@@ -29,11 +29,15 @@ elif [[ "$(uname -s)" == "Darwin" ]]; then
     fi
 fi
 
-# Function to check if yq is available
-check_yq() {
-    if ! command -v yq >/dev/null 2>&1; then
-        printf "${ERROR}Error: yq is required for YAML parsing${NC}\n" >&2
-        printf "${INFO}Install with: brew install yq${NC}\n" >&2
+# Function to check if YAML parser is available
+check_yaml_parser() {
+    if ! command -v node >/dev/null 2>&1; then
+        printf "${ERROR}Error: node is required for YAML parsing${NC}\n" >&2
+        exit 1
+    fi
+    if ! node "$YAML_CLI" selftest >/dev/null 2>&1; then
+        printf "${ERROR}Error: npm package 'yaml' is required for YAML parsing${NC}\n" >&2
+        printf "${INFO}Install with: npm install -g @udx/worker-deployment${NC}\n" >&2
         exit 1
     fi
 }
@@ -149,8 +153,10 @@ if [[ "$dry_run" == true ]]; then
     make_args+=("DRY_RUN=true")
 fi
 
+YAML_CLI="${SCRIPT_DIR}/yaml.js"
+
 # Check dependencies
-check_yq
+check_yaml_parser
 check_docker
 
 # Auto-copy ADC to gcp-key.json if no credentials exist
@@ -171,17 +177,26 @@ if [[ ! -f "$config_file" ]]; then
 fi
 
 printf "${INFO}Using configuration: $config_file${NC}\n"
+yaml_get() {
+    node "$YAML_CLI" get "$1" "$config_file"
+}
+yaml_length() {
+    node "$YAML_CLI" length "$1" "$config_file"
+}
+yaml_keys() {
+    node "$YAML_CLI" keys "$1" "$config_file"
+}
 
 # Parse YAML configuration
-WORKER_IMAGE=$(yq eval '.config.image' "$config_file")
-COMMAND=$(yq eval '.config.command' "$config_file")
-NETWORK=$(yq eval '.config.network // ""' "$config_file")
-CONTAINER_NAME=$(yq eval '.config.container_name // ""' "$config_file")
+WORKER_IMAGE=$(yaml_get '.config.image')
+COMMAND=$(yaml_get '.config.command')
+NETWORK=$(yaml_get '.config.network')
+CONTAINER_NAME=$(yaml_get '.config.container_name')
 
 # Parse service account configuration (optional)
-SA_KEY_PATH=$(yq eval '.config.service_account.key_path // ""' "$config_file")
-SA_TOKEN_PATH=$(yq eval '.config.service_account.token_path // ""' "$config_file")
-SA_EMAIL=$(yq eval '.config.service_account.email // ""' "$config_file")
+SA_KEY_PATH=$(yaml_get '.config.service_account.key_path')
+SA_TOKEN_PATH=$(yaml_get '.config.service_account.token_path')
+SA_EMAIL=$(yaml_get '.config.service_account.email')
 
 # Validate required fields
 if [[ "$WORKER_IMAGE" == "null" || -z "$WORKER_IMAGE" ]]; then
@@ -212,10 +227,10 @@ fi
 
 # Build volumes from config
 VOLUMES=""
-volume_count=$(yq eval '.config.volumes | length' "$config_file")
+volume_count=$(yaml_length '.config.volumes')
 PWD_CURRENT="$(pwd)"
 for ((i=0; i<volume_count; i++)); do
-    volume=$(yq eval ".config.volumes[$i]" "$config_file")
+    volume=$(yaml_get ".config.volumes[$i]")
     
     # Extract source and destination paths
     src_path="${volume%%:*}"
@@ -249,12 +264,12 @@ done
 
 # Build environment variables from config
 ENV_VARS=""
-env_count=$(yq eval '.config.env | length' "$config_file")
+env_count=$(yaml_length '.config.env')
 if [[ "$env_count" != "0" ]]; then
-    env_keys=$(yq eval '.config.env | keys | .[]' "$config_file")
+    env_keys=$(yaml_keys '.config.env')
     while IFS= read -r key; do
         if [[ -n "$key" ]]; then
-            value=$(yq eval ".config.env.$key" "$config_file")
+            value=$(yaml_get ".config.env.$key")
             ENV_VARS="$ENV_VARS -e $key=$value"
         fi
     done <<< "$env_keys"
@@ -262,17 +277,17 @@ fi
 
 # Parse ports from config
 PORTS=""
-port_count=$(yq eval '.config.ports | length' "$config_file")
+port_count=$(yaml_length '.config.ports')
 for ((i=0; i<port_count; i++)); do
-    port=$(yq eval ".config.ports[$i]" "$config_file")
+    port=$(yaml_get ".config.ports[$i]")
     PORTS="$PORTS -p $port"
 done
 
 # Build arguments from config
 ARGS=""
-args_count=$(yq eval '.config.args | length' "$config_file")
+args_count=$(yaml_length '.config.args')
 for ((i=0; i<args_count; i++)); do
-    arg=$(yq eval ".config.args[$i]" "$config_file")
+    arg=$(yaml_get ".config.args[$i]")
     ARGS="$ARGS $arg"
 done
 

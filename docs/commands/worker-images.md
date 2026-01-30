@@ -5,7 +5,7 @@ Search for `worker-` projects in GitHub and Docker Hub.
 ## Usage
 
 ```bash
-worker-images --all
+worker images --all
 ```
 
 ## Options
@@ -25,5 +25,5 @@ worker-images --all
 ## npx
 
 ```bash
-npx @udx/worker-deployment worker-images --all
+npx @udx/worker-deployment worker images --all
 ```

@@ -5,7 +5,7 @@ Generates a `deploy.yml` template in the current directory.
 ## Usage
 
 ```bash
-worker-config
+worker config
 ```
 
 ## Options
@@ -16,5 +16,5 @@ worker-config
 ## npx
 
 ```bash
-npx @udx/worker-deployment worker-config
+npx @udx/worker-deployment worker config
 ```

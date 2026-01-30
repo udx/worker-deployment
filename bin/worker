@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+MODULE_DIR="${SCRIPT_DIR}/modules"
+
+show_help() {
+    echo "Usage: worker <command> [args]"
+    echo ""
+    echo "Commands:"
+    echo "  config        Generate config template"
+    echo "  run           Run container"
+    echo "  gen           Generate repo/templates"
+    echo "  images        List worker images"
+    echo "  help          Show this help"
+}
+
+cmd="${1:-}"
+if [[ -z "$cmd" || "$cmd" == "help" || "$cmd" == "--help" || "$cmd" == "-h" ]]; then
+    show_help
+    exit 0
+fi
+shift || true
+
+case "$cmd" in
+    config) exec "${MODULE_DIR}/config.sh" "$@" ;;
+    run) exec "${MODULE_DIR}/deploy.sh" "$@" ;;
+    gen) exec "${MODULE_DIR}/gen.sh" "$@" ;;
+    images) exec "${MODULE_DIR}/images.sh" "$@" ;;
+    *) echo "Unknown command: $cmd"; show_help; exit 1 ;;
+esac

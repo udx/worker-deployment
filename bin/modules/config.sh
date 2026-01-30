@@ -60,7 +60,8 @@ while [ -L "$SCRIPT_PATH" ]; do
     [[ $SCRIPT_PATH != /* ]] && SCRIPT_PATH="$SCRIPT_DIR/$SCRIPT_PATH"
 done
 SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
-TEMPLATE_FILE="$SCRIPT_DIR/../configs/deploy.yml"
+PKG_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+TEMPLATE_FILE="$PKG_DIR/src/configs/deploy.yml"
 
 if [ -f "$TEMPLATE_FILE" ]; then
     cp "$TEMPLATE_FILE" "$OUTPUT_FILE"
@@ -77,7 +78,7 @@ printf "   - Update the 'image' field with your Docker image\n"
 printf "   - Configure 'volumes' to mount your files\n"
 printf "   - Set your 'command' (optional - uses container default if omitted)\n"
 printf "   - Add any needed environment variables\n"
-printf "2. Test your configuration: worker-run --dry-run\n"
-printf "3. Run your deployment: worker-run\n"
+printf "2. Test your configuration: worker run --dry-run\n"
+printf "3. Run your deployment: worker run\n"
 printf "\n"
-printf "${INFO}💡 Tip: Use 'worker-run run-it' for interactive debugging${NC}\n"
+printf "${INFO}💡 Tip: Use 'worker run run-it' for interactive debugging${NC}\n"

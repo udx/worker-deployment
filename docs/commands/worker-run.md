@@ -5,7 +5,7 @@ Runs a Docker container using `deploy.yml` and auto-detected credentials.
 ## Usage
 
 ```bash
-worker-run
+worker run
 ```
 
 ## Options
@@ -17,7 +17,7 @@ worker-run
 ## npx
 
 ```bash
-npx @udx/worker-deployment worker-run
+npx @udx/worker-deployment worker run
 ```
 
 ## Notes

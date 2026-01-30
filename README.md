@@ -12,33 +12,33 @@ npm install -g @udx/worker-deployment
 ## npx (no install)
 
 ```bash
-npx @udx/worker-deployment worker-config
-npx @udx/worker-deployment worker-run
+npx @udx/worker-deployment worker config
+npx @udx/worker-deployment worker run
 ```
 
 ## Quick Start
 
 ```bash
 # Generate default config template
-worker-config
+worker config
 
 # Edit deploy.yml with your settings
 
 # Run your container
-worker-run
+worker run
 ```
 
 ## Commands
 
 ```bash
-worker-config                    # Generate config template
-worker-run                       # Run container (auto-detects credentials)
-worker-run --dry-run             # Preview without executing
-worker-run run-it                # Interactive mode (shell access)
-worker-run --config=custom.yml   # Use custom config file
-worker-gen repo                  # Generate child image repo (dry-run + prompt)
-worker-gen dockerfile            # Generate Dockerfile only (dry-run + prompt)
-worker-images --all              # List worker images from GitHub/Docker Hub
+worker config                    # Generate config template
+worker run                       # Run container (auto-detects credentials)
+worker run --dry-run             # Preview without executing
+worker run run-it                # Interactive mode (shell access)
+worker run --config=custom.yml   # Use custom config file
+worker gen repo                  # Generate child image repo (dry-run + prompt)
+worker gen dockerfile            # Generate Dockerfile only (dry-run + prompt)
+worker images --all              # List worker images from GitHub/Docker Hub
 ```
 
 ## Docs

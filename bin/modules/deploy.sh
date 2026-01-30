@@ -35,7 +35,7 @@ check_yaml_parser() {
         printf "${ERROR}Error: node is required for YAML parsing${NC}\n" >&2
         exit 1
     fi
-    if ! node "$YAML_CLI" selftest >/dev/null 2>&1; then
+    if ! node -e "require('yaml')" >/dev/null 2>&1; then
         printf "${ERROR}Error: npm package 'yaml' is required for YAML parsing${NC}\n" >&2
         printf "${INFO}Install with: npm install -g @udx/worker-deployment${NC}\n" >&2
         exit 1
@@ -67,10 +67,10 @@ done
 SCRIPT_DIR="$(cd -P "$(dirname "$SCRIPT_PATH")" && pwd)"
 
 # Resolve package directory
-PKG_DIR="${SCRIPT_DIR}/.."
+PKG_DIR="${SCRIPT_DIR}/../.."
 
 # Resolve makefile
-MK="$PKG_DIR/make/deploy.mk"
+MK="$PKG_DIR/src/make/deploy.mk"
 
 # Default configuration file - look in current working directory only
 # Check for both .yml and .yaml extensions
@@ -153,7 +153,8 @@ if [[ "$dry_run" == true ]]; then
     make_args+=("DRY_RUN=true")
 fi
 
-YAML_CLI="${PKG_DIR}/lib/common/yaml.js"
+YAML_CLI="${PKG_DIR}/lib/yaml.js"
+export NODE_PATH="${PKG_DIR}/node_modules"
 
 # Check dependencies
 check_yaml_parser

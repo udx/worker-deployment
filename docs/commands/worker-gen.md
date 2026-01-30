@@ -4,10 +4,10 @@ Generates child image scaffolding or config templates. Dry-run by default.
 
 ## Commands
 
-- `worker-gen repo` generate a child image repo skeleton
-- `worker-gen dockerfile` generate Dockerfile only
-- `worker-gen worker.yaml` generate `worker.yaml`
-- `worker-gen services.yaml` generate `services.yaml`
+- `worker gen repo` generate a child image repo skeleton
+- `worker gen dockerfile` generate Dockerfile only
+- `worker gen worker.yaml` generate `worker.yaml`
+- `worker gen services.yaml` generate `services.yaml`
 
 ## Options
 
@@ -22,5 +22,5 @@ Generates child image scaffolding or config templates. Dry-run by default.
 ## npx
 
 ```bash
-npx @udx/worker-deployment worker-gen repo
+npx @udx/worker-deployment worker gen repo
 ```

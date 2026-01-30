@@ -1,6 +1,7 @@
 # Worker Deploy
 
 Run any Docker container with automatic cloud authentication.
+Requires Docker.
 
 ## Installation
 

@@ -9,12 +9,20 @@ INFO='\033[0;36m'
 ERROR='\033[0;31m'
 NC='\033[0m'
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PKG_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
+
+# Load shared CLI defaults
+# shellcheck source=/dev/null
+source "$PKG_DIR/lib/config.sh"
+load_cli_config "$PKG_DIR"
+
 show_help() {
-    echo "Usage: worker-images [options]"
+    echo "Usage: worker images [options]"
     echo ""
     echo "Options:"
-    echo "  --github            Search GitHub org:udx for repos matching worker-"
-    echo "  --dockerhub         Search Docker Hub usabilitydynamics for images matching worker-"
+    echo "  --github            Search GitHub org:${UDX_GITHUB_ORG} for repos matching ${UDX_GITHUB_REPO_PREFIX}"
+    echo "  --dockerhub         Search Docker Hub ${UDX_DOCKERHUB_ORG} for images matching ${UDX_DOCKERHUB_SEARCH_PREFIX}"
     echo "  --all               Search all sources (default)"
     echo "  --limit=N           Max results per source (default: 50)"
     echo "  --output=FILE       Write results to file (default: stdout)"
@@ -66,11 +74,12 @@ results=""
 fetch_github() {
     local gh_json=""
     if command -v gh >/dev/null 2>&1 && gh auth status -h github.com >/dev/null 2>&1; then
-        gh_json="$(gh repo list udx --limit "$LIMIT" --json name,visibility,description,url)"
-        gh_json="$($PYTHON_BIN - <<'PY' "$gh_json"
+        gh_json="$(gh repo list "$UDX_GITHUB_ORG" --limit "$LIMIT" --json name,visibility,description,url)"
+        gh_json="$($PYTHON_BIN - "$gh_json" "$UDX_GITHUB_REPO_PREFIX" <<'PY'
 import json, sys
 data = json.loads(sys.argv[1])
-items = [r for r in data if "worker-" in r.get("name","")]
+prefix = sys.argv[2]
+items = [r for r in data if prefix in r.get("name","")]
 print(json.dumps(items))
 PY
 )"
@@ -78,7 +87,8 @@ PY
         local token="${GITHUB_TOKEN:-}"
         local per_page="$LIMIT"
         if [[ "$per_page" -gt 100 ]]; then per_page=100; fi
-        local url="https://api.github.com/search/repositories?q=org:udx+worker-+in:name&per_page=${per_page}"
+        local query="org:${UDX_GITHUB_ORG}+${UDX_GITHUB_REPO_PREFIX}+in:name"
+        local url="${UDX_GITHUB_API_BASE}${UDX_GITHUB_SEARCH_REPOS_ENDPOINT}?q=${query}&per_page=${per_page}"
         if [[ -n "$token" ]]; then
             gh_json="$(curl -sS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer ${token}" "$url")"
         else
@@ -86,9 +96,10 @@ PY
         fi
     fi
 
-    $PYTHON_BIN - <<'PY' "$gh_json"
+    $PYTHON_BIN - <<'PY' "$gh_json" "$UDX_GITHUB_REPO_PREFIX"
 import json, sys
 raw = sys.argv[1]
+prefix = sys.argv[2]
 if not raw.strip():
     sys.exit(0)
 data = json.loads(raw)
@@ -100,7 +111,7 @@ for item in items:
     name = item.get("name","")
     url = item.get("html_url") or item.get("url") or ""
     vis = item.get("visibility") or item.get("private") and "private" or "public"
-    if name and "worker-" in name:
+    if name and prefix in name:
         print(f"github: {name} [{vis}] - {url}")
 PY
 }
@@ -114,7 +125,7 @@ decode_docker_auth() {
 }
 
 fetch_dockerhub() {
-    local url="https://hub.docker.com/v2/repositories/usabilitydynamics/?page_size=${LIMIT}&name=worker-"
+    local url="${UDX_DOCKERHUB_API_BASE}/${UDX_DOCKERHUB_ORG}/?page_size=${LIMIT}&name=${UDX_DOCKERHUB_SEARCH_PREFIX}"
     local dh_json=""
     if [[ -n "${DOCKERHUB_TOKEN:-}" ]]; then
         dh_json="$(curl -sS -H "Authorization: Bearer ${DOCKERHUB_TOKEN}" "$url")"
@@ -148,20 +159,25 @@ PY
         fi
     fi
 
-    $PYTHON_BIN - <<'PY' "$dh_json"
+    $PYTHON_BIN - <<'PY' "$dh_json" "$UDX_DOCKERHUB_SEARCH_PREFIX" "$UDX_DOCKERHUB_ORG" "$UDX_DOCKERHUB_WEB_BASE"
 import json, sys
 raw = sys.argv[1]
+prefix = sys.argv[2]
+org = sys.argv[3]
+web_base = sys.argv[4]
 if not raw.strip():
     sys.exit(0)
 data = json.loads(raw)
 items = data.get("results", [])
 for item in items:
     name = item.get("name","")
-    if "worker-" not in name:
+    if prefix not in name:
         continue
     private = item.get("is_private", False)
     vis = "private" if private else "public"
     url = item.get("repo_url") or item.get("url") or ""
+    if not url and name:
+        url = f"{web_base}/{org}/{name}"
     print(f"dockerhub: {name} [{vis}] - {url}")
 PY
 }

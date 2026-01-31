@@ -14,9 +14,8 @@ Generates child image scaffolding or config templates. Dry-run by default.
 - `--output-dir=DIR` output directory (default: current)
 - `--apply` or `--yes` write files without prompting
 - `--force` overwrite existing files
-- `--lang=node|php|python|custom` Dockerfile preset
-- `--base=IMAGE` base image (default: usabilitydynamics/udx-worker:latest)
-- `--app-home=PATH` app home path (default depends on preset)
+- `--base=IMAGE` base image (default from `UDX_BASE_IMAGE`)
+- `--app-home=PATH` app home path (default: /usr/src/app)
 - `--name=NAME` used in README/Makefile when generating a repo
 
 ## npx

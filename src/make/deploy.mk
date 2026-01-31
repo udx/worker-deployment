@@ -45,7 +45,7 @@ run:
 	@echo $(CRED_INFO)
 	@echo "Image: $(WORKER_IMAGE)"
 ifneq ($(COMMAND),)
-	@echo "Command: $(COMMAND)"
+	@echo Command: $(COMMAND)
 else
 	@echo "Command: <using container default>"
 endif
@@ -62,19 +62,13 @@ endif
 ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "🔍 DRY RUN - Would execute:"
-	@echo "docker run --rm \\"
-	@echo "    $(VOLUMES) \\"
-	@echo "    $(CLOUD_VOLUMES) \\"
-	@echo "    $(ENV_VARS) \\"
-	@echo "    $(PORTS) \\"
-	@echo "    $(NETWORK) \\"
-	@echo "    $(CONTAINER_NAME) \\"
-	@echo "    $(CLOUD_ENV) \\"
-	@echo "    $(WORKER_IMAGE) \\"
-ifneq ($(COMMAND),)
-	@echo "    $(COMMAND) \\"
-endif
-	@echo "    $(ARGS)"
+	@sh -c 'cmd="docker run --rm"; \
+	for part in $(VOLUMES) $(CLOUD_VOLUMES) $(ENV_VARS) $(PORTS) $(NETWORK) $(CONTAINER_NAME) $(CLOUD_ENV) $(WORKER_IMAGE); do \
+		if [ -n "$$part" ]; then cmd="$$cmd $$part"; fi; \
+	done; \
+	if [ -n "$(COMMAND)" ]; then cmd="$$cmd $(COMMAND)"; fi; \
+	if [ -n "$(ARGS)" ]; then cmd="$$cmd $(ARGS)"; fi; \
+	echo "$$cmd"'
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else
@@ -110,7 +104,7 @@ run-it:
 	@echo $(CRED_INFO)
 	@echo "Image: $(WORKER_IMAGE)"
 ifneq ($(COMMAND),)
-	@echo "Command: $(COMMAND)"
+	@echo Command: $(COMMAND)
 else
 	@echo "Command: <using container default>"
 endif
@@ -127,19 +121,13 @@ endif
 ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "🔍 DRY RUN - Would execute (interactive):"
-	@echo "docker run --rm -it \\"
-	@echo "    $(VOLUMES) \\"
-	@echo "    $(CLOUD_VOLUMES) \\"
-	@echo "    $(ENV_VARS) \\"
-	@echo "    $(PORTS) \\"
-	@echo "    $(NETWORK) \\"
-	@echo "    $(CONTAINER_NAME) \\"
-	@echo "    $(CLOUD_ENV) \\"
-	@echo "    $(WORKER_IMAGE) \\"
-ifneq ($(COMMAND),)
-	@echo "    $(COMMAND) \\"
-endif
-	@echo "    $(ARGS)"
+	@sh -c 'cmd="docker run --rm -it"; \
+	for part in $(VOLUMES) $(CLOUD_VOLUMES) $(ENV_VARS) $(PORTS) $(NETWORK) $(CONTAINER_NAME) $(CLOUD_ENV) $(WORKER_IMAGE); do \
+		if [ -n "$$part" ]; then cmd="$$cmd $$part"; fi; \
+	done; \
+	if [ -n "$(COMMAND)" ]; then cmd="$$cmd $(COMMAND)"; fi; \
+	if [ -n "$(ARGS)" ]; then cmd="$$cmd $(ARGS)"; fi; \
+	echo "$$cmd"'
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else

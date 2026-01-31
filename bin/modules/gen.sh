@@ -13,6 +13,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TEMPLATE_ROOT="$PKG_DIR/src/templates/worker-gen"
 
+# Load shared CLI defaults
+# shellcheck source=/dev/null
+source "$PKG_DIR/lib/config.sh"
+load_cli_config "$PKG_DIR"
+
 show_help() {
     echo "Usage: worker gen <command> [options]"
     echo ""
@@ -28,9 +33,8 @@ show_help() {
     echo "  --force              Overwrite existing files"
     echo ""
     echo "Dockerfile Options:"
-    echo "  --lang=LANG          Language preset: node|php|python|custom"
-    echo "  --base=IMAGE         Base worker image (default: usabilitydynamics/udx-worker:latest)"
-    echo "  --app-home=PATH      App home directory (default by lang)"
+    echo "  --base=IMAGE         Base worker image (default: ${UDX_BASE_IMAGE})"
+    echo "  --app-home=PATH      App home directory (default: APP_HOME env or HOME)"
     echo ""
     echo "Repo Options:"
     echo "  --name=NAME          Project name (used in README/Makefile)"
@@ -39,8 +43,8 @@ show_help() {
     echo "  --dockerfile-only    Skip other repo files (same as dockerfile command)"
     echo ""
     echo "Examples:"
-    echo "  worker gen repo --lang=node"
-    echo "  worker gen dockerfile --lang=php --apply"
+    echo "  worker gen repo"
+    echo "  worker gen dockerfile --apply"
     echo "  worker gen worker.yaml --output-dir=.config/worker"
 }
 
@@ -54,9 +58,8 @@ shift || true
 APPLY=false
 FORCE=false
 OUTPUT_DIR="$(pwd)"
-LANG="custom"
-BASE_IMAGE="usabilitydynamics/udx-worker:latest"
-APP_HOME=""
+BASE_IMAGE="$UDX_BASE_IMAGE"
+APP_HOME_OVERRIDE=""
 NAME="child-worker"
 WITH_WORKER_CONFIG=true
 WITH_SERVICES=true
@@ -67,9 +70,8 @@ while [[ $# -gt 0 ]]; do
         --output-dir=*) OUTPUT_DIR="${1#*=}" ;;
         --apply|--yes) APPLY=true ;;
         --force) FORCE=true ;;
-        --lang=*) LANG="${1#*=}" ;;
         --base=*) BASE_IMAGE="${1#*=}" ;;
-        --app-home=*) APP_HOME="${1#*=}" ;;
+        --app-home=*) APP_HOME_OVERRIDE="${1#*=}" ;;
         --name=*) NAME="${1#*=}" ;;
         --with-worker-config) WITH_WORKER_CONFIG=true ;;
         --with-services) WITH_SERVICES=true ;;
@@ -82,16 +84,17 @@ while [[ $# -gt 0 ]]; do
     shift
 done
 
-case "$LANG" in
-    node) APP_HOME_DEFAULT="/usr/src/app" ;;
-    php) APP_HOME_DEFAULT="/var/www" ;;
-    python) APP_HOME_DEFAULT="/usr/src/app" ;;
-    custom) APP_HOME_DEFAULT="/usr/src/app" ;;
-    *) echo "Unknown lang preset: $LANG"; exit 1 ;;
-esac
+ENV_APP_HOME="${APP_HOME:-}"
+ENV_HOME="${HOME:-}"
+
+APP_HOME="$APP_HOME_OVERRIDE"
 
 if [[ -z "$APP_HOME" ]]; then
-    APP_HOME="$APP_HOME_DEFAULT"
+    if [[ -n "$ENV_APP_HOME" ]]; then
+        APP_HOME="$ENV_APP_HOME"
+    elif [[ -n "$ENV_HOME" ]]; then
+        APP_HOME="$ENV_HOME"
+    fi
 fi
 
 TMP_DIR="$(mktemp -d)"

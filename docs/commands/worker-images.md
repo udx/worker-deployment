@@ -1,6 +1,7 @@
-# worker-images
+# worker images
 
-Search for `worker-` projects in GitHub and Docker Hub.
+Search for worker projects in GitHub and Docker Hub.
+Defaults are loaded from `src/configs/cli.env` and can be overridden with environment variables.
 
 ## Usage
 
@@ -10,8 +11,8 @@ worker images --all
 
 ## Options
 
-- `--github` search GitHub org `udx`
-- `--dockerhub` search Docker Hub org `usabilitydynamics`
+- `--github` search GitHub org (default from `UDX_GITHUB_ORG`)
+- `--dockerhub` search Docker Hub org (default from `UDX_DOCKERHUB_ORG`)
 - `--all` search both (default)
 - `--limit=N` limit results per source (default: 50)
 - `--output=FILE` write results to file (prompts unless `--apply`)

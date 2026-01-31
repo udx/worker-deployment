@@ -6,6 +6,6 @@ PKG_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
 WORKER="$PKG_DIR/bin/worker"
 
 echo "Images command smoke test (no network assertions)..."
-"$WORKER" images --github --limit=1 >/dev/null || true
+"$WORKER" images --github --limit=1 >/dev/null 2>/dev/null || true
 
 echo "✅ images test passed"

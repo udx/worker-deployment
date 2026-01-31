@@ -57,6 +57,13 @@ check_docker() {
     fi
 }
 
+# Shell-quote a string for /bin/sh
+shell_quote() {
+    local value="$1"
+    value="${value//\'/\'\\\'\'}"
+    printf "'%s'" "$value"
+}
+
 # Resolve script directory
 SCRIPT_PATH="${BASH_SOURCE[0]}"
 while [ -L "$SCRIPT_PATH" ]; do
@@ -213,12 +220,16 @@ if [[ "$COMMAND" == "null" ]]; then
     COMMAND=""
 fi
 
+if [[ -n "$COMMAND" ]] && [[ "$COMMAND" =~ [[:space:]] ]]; then
+    printf "${WARN}Warning: 'command' contains spaces. Use 'args' for flags/arguments.${NC}\n" >&2
+fi
+
 # Network is optional - if not specified, container will use its default network
 if [[ "$NETWORK" == "null" || -z "$NETWORK" ]]; then
     NETWORK=""
 else
     # Format network with --network flag
-    NETWORK="--network $NETWORK"
+    NETWORK="--network $(shell_quote "$NETWORK")"
 fi
 
 # Container name is optional - if not specified, Docker will auto-generate a name
@@ -226,7 +237,7 @@ if [[ "$CONTAINER_NAME" == "null" || -z "$CONTAINER_NAME" ]]; then
     CONTAINER_NAME=""
 else
     # Format container name with --name flag
-    CONTAINER_NAME="--name $CONTAINER_NAME"
+    CONTAINER_NAME="--name $(shell_quote "$CONTAINER_NAME")"
 fi
 
 # Build volumes from config
@@ -266,7 +277,7 @@ for ((i=0; i<volume_count; i++)); do
     
     # Reconstruct the volume mapping
     volume="$src_path:$dest_path"
-    VOLUMES="$VOLUMES -v $volume"
+    VOLUMES="$VOLUMES -v $(shell_quote "$volume")"
 done
 
 # Build environment variables from config
@@ -277,7 +288,7 @@ if [[ "$env_count" != "0" ]]; then
     while IFS= read -r key; do
         if [[ -n "$key" ]]; then
             value=$(yaml_get ".config.env.$key")
-            ENV_VARS="$ENV_VARS -e $key=$value"
+            ENV_VARS="$ENV_VARS -e $(shell_quote "$key=$value")"
         fi
     done <<< "$env_keys"
 fi
@@ -287,7 +298,7 @@ PORTS=""
 port_count=$(yaml_length '.config.ports')
 for ((i=0; i<port_count; i++)); do
     port=$(yaml_get ".config.ports[$i]")
-    PORTS="$PORTS -p $port"
+    PORTS="$PORTS -p $(shell_quote "$port")"
 done
 
 # Build arguments from config
@@ -295,7 +306,7 @@ ARGS=""
 args_count=$(yaml_length '.config.args')
 for ((i=0; i<args_count; i++)); do
     arg=$(yaml_get ".config.args[$i]")
-    ARGS="$ARGS $arg"
+    ARGS="$ARGS $(shell_quote "$arg")"
 done
 
 # Add parsed values to make_args

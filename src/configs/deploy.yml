@@ -17,12 +17,20 @@ config:
     # - "./data:/data:ro"
 
   # Command to run (optional - if not specified, uses container's default CMD/ENTRYPOINT)
-  command: "echo 'Hello from worker container! Edit this command in deploy.yml'"
+  # Tip: keep command to the executable and put complex values in args
+  command: "echo"
 
   # Additional arguments to pass to the command (optional)
   # args:
+  #   - "Hello from worker container! Edit this command in deploy.yml"
   #   - "--verbose"
   #   - "--output=/workspace/outputs"
+  #
+  # Example: node -e "console.log('hello_world')"
+  # command: "node"
+  # args:
+  #   - "-e"
+  #   - "console.log('hello_world')"
 
   # Ports to expose (optional)
   # Format: "host_port:container_port" or "container_port"

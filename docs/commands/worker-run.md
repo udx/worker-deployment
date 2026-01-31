@@ -23,3 +23,4 @@ npx @udx/worker-deployment worker run
 ## Notes
 
 - YAML parsing uses the bundled Node `yaml` package.
+- For commands with special characters, prefer `command` + `args` in `deploy.yml`.

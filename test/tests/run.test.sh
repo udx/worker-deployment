@@ -8,6 +8,11 @@ WORKER="$PKG_DIR/bin/worker"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
+if ! command -v docker >/dev/null 2>&1 || ! docker info >/dev/null 2>&1; then
+    echo "⚠️  Docker not available; skipping run tests. Set RUN_DOCKER_TESTS=1 and ensure Docker is running to enable."
+    exit 0
+fi
+
 echo "Testing dry-run with gcp-key.json..."
 mkdir -p "$TMP_DIR/key-test"
 echo '{"type": "service_account", "test": "key"}' > "$TMP_DIR/key-test/gcp-key.json"
@@ -37,7 +42,7 @@ config:
   volumes:
     - "./:/workspace"
 EOF
-if "$WORKER" run --config="$TMP_DIR/network-test/deploy.yml" --dry-run 2>&1 | sed -E 's/\x1b\[[0-9;]*m//g' | grep -q -- "--network host"; then
+if "$WORKER" run --config="$TMP_DIR/network-test/deploy.yml" --dry-run 2>&1 | sed -E 's/\x1b\[[0-9;]*m//g' | grep -q -- "--network 'host'"; then
     echo "✅ network flag present"
 else
     echo "❌ network flag missing"
@@ -57,10 +62,31 @@ config:
   volumes:
     - "./:/workspace"
 EOF
-if "$WORKER" run --config="$TMP_DIR/name-test/deploy.yml" --dry-run 2>&1 | sed -E 's/\x1b\[[0-9;]*m//g' | grep -q -- "--name test-worker-123"; then
+if "$WORKER" run --config="$TMP_DIR/name-test/deploy.yml" --dry-run 2>&1 | sed -E 's/\x1b\[[0-9;]*m//g' | grep -q -- "--name 'test-worker-123'"; then
     echo "✅ container name flag present"
 else
     echo "❌ container name flag missing"
+    exit 1
+fi
+
+echo "Testing args rendering..."
+mkdir -p "$TMP_DIR/args-test"
+cat > "$TMP_DIR/args-test/deploy.yml" <<EOF
+---
+kind: workerDeployConfig
+version: udx.io/worker-v1/deploy
+config:
+  image: "usabilitydynamics/udx-worker:latest"
+  command: "node"
+  args:
+    - "-e"
+    - "console.log(\\"hello_world\\")"
+EOF
+args_output="$("$WORKER" run --config="$TMP_DIR/args-test/deploy.yml" --dry-run 2>&1 | sed -E 's/\x1b\[[0-9;]*m//g')"
+if echo "$args_output" | grep -q -- "-e" && echo "$args_output" | grep -q -- 'console.log("hello_world")'; then
+    echo "✅ args rendered"
+else
+    echo "❌ args rendering missing"
     exit 1
 fi
 

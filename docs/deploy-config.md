@@ -24,6 +24,17 @@ config:
   # No command specified - uses container's default CMD/ENTRYPOINT
 ```
 
+Command + args (recommended for special characters):
+
+```yaml
+config:
+  image: "usabilitydynamics/udx-worker-nodejs:latest"
+  command: "node"
+  args:
+    - "-e"
+    - "console.log('hello_world')"
+```
+
 Service account impersonation:
 
 ```yaml

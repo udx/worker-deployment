@@ -9,10 +9,10 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 echo "Dry-run repo generation..."
-"$WORKER" gen repo --output-dir="$TMP_DIR" --lang=node </dev/null >/dev/null || true
+"$WORKER" gen repo --output-dir="$TMP_DIR" </dev/null >/dev/null || true
 
 echo "Apply dockerfile generation..."
-"$WORKER" gen dockerfile --output-dir="$TMP_DIR" --lang=node --apply --force
+"$WORKER" gen dockerfile --output-dir="$TMP_DIR" --apply --force
 
 if [[ ! -f "$TMP_DIR/Dockerfile" ]]; then
     echo "❌ Dockerfile not created"

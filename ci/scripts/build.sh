@@ -20,3 +20,6 @@ rm -f "$OUT_DIR"/*.tgz
 
 printf "Packing npm tarball into %s\n" "$OUT_DIR"
 npm pack --pack-destination "$OUT_DIR"
+
+printf "Copying package.json to %s\n" "$OUT_DIR"
+cp "$ROOT_DIR/package.json" "$OUT_DIR"

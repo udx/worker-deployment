@@ -2,19 +2,13 @@ name: NPM Release
 
 on:
   push:
-    branches:
-      - master
   workflow_dispatch:
 
 jobs:
   release:
-    uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@master
+    # uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@master
+    uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@npm-release-workflow
     with:
-      node_version: "20"
-      release_branch: "master"
-      build_command: ""
-      test_command: "npm test"
-      working_directory: "."
+      release_branch: "improvements"
     secrets:
-      npm_token: ${{ secrets.NPM_TOKEN }}
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

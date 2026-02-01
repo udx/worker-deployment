@@ -1,13 +1,13 @@
 {
   "name": "@udx/worker-deployment",
-  "version": "2.5.0",
+  "version": "0.0.0-test",
   "description": "Docker container runner with YAML configuration and automatic GCP authentication (keys, Workload Identity, impersonation)",
   "bin": {
     "worker": "bin/worker"
   },
   "scripts": {
-    "test": "cd test && ./index.sh",
-    "release": "./release.sh"
+    "test": "./test/index.sh",
+    "release": "./ci/scripts/release.sh"
   },
   "keywords": [
     "docker",

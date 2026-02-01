@@ -6,8 +6,12 @@
     "worker": "bin/worker"
   },
   "scripts": {
+    "build": "./ci/scripts/build.sh",
     "test": "./test/index.sh",
     "release": "./ci/scripts/release.sh"
+  },
+  "config": {
+    "dist": "dist"
   },
   "keywords": [
     "docker",

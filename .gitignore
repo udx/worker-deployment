@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 
 # Test directories
 test-deployment/
@@ -24,3 +23,6 @@ Thumbs.db
 *.tmp
 tmp/
 temp/
+
+# Build output
+/dist

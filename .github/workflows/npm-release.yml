@@ -4,6 +4,10 @@ on:
   push:
   workflow_dispatch:
 
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   prepare:
     runs-on: ubuntu-latest
@@ -23,9 +27,6 @@ jobs:
   release:
     uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@npm-release-workflow
     needs: prepare
-    permissions:
-      id-token: write
-      contents: write
     with:
       release_branch: "improvements"
       dist_dir: ${{ needs.prepare.outputs.working_dir }}

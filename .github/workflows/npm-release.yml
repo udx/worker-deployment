@@ -8,6 +8,9 @@ jobs:
   release:
     # uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@master
     uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@npm-release-workflow
+    permissions:
+      id-token: write
+      contents: write
     with:
       release_branch: "improvements"
     secrets:

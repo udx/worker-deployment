@@ -22,7 +22,9 @@ kind: workerDeployConfig
 version: udx.io/worker-v1/deploy
 config:
   image: "usabilitydynamics/udx-worker:latest"
-  command: "echo 'Testing dry-run'"
+  command: "echo"
+  args:
+    - "Testing dry-run"
   volumes:
     - "./:/workspace"
 EOF
@@ -37,7 +39,9 @@ kind: workerDeployConfig
 version: udx.io/worker-v1/deploy
 config:
   image: "usabilitydynamics/udx-worker:latest"
-  command: "echo 'Testing network configuration'"
+  command: "echo"
+  args:
+    - "Testing network configuration"
   network: "host"
   volumes:
     - "./:/workspace"
@@ -57,7 +61,9 @@ kind: workerDeployConfig
 version: udx.io/worker-v1/deploy
 config:
   image: "usabilitydynamics/udx-worker:latest"
-  command: "echo 'Testing container name configuration'"
+  command: "echo"
+  args:
+    - "Testing container name configuration"
   container_name: "test-worker-123"
   volumes:
     - "./:/workspace"

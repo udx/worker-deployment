@@ -21,6 +21,9 @@ include $(dir $(lastword $(MAKEFILE_LIST)))/../providers/gcp.mk
 CLOUD_VOLUMES = $(GCP_VOLUME) $(AWS_VOLUME) $(AZURE_VOLUME)
 CLOUD_ENV = $(GCP_ENV) $(AWS_ENV) $(AZURE_ENV)
 
+# Escape single quotes for safe single-quoted shell output
+squote = $(subst ','"'"',$(1))
+
 # Build credential info message
 CRED_INFO_PARTS = 
 ifneq ($(GCP_CRED_INFO),)
@@ -62,13 +65,7 @@ endif
 ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "🔍 DRY RUN - Would execute:"
-	@sh -c 'cmd="docker run --rm"; \
-	for part in $(VOLUMES) $(CLOUD_VOLUMES) $(ENV_VARS) $(PORTS) $(NETWORK) $(CONTAINER_NAME) $(CLOUD_ENV) $(WORKER_IMAGE); do \
-		if [ -n "$$part" ]; then cmd="$$cmd $$part"; fi; \
-	done; \
-	if [ -n "$(COMMAND)" ]; then cmd="$$cmd $(COMMAND)"; fi; \
-	if [ -n "$(ARGS)" ]; then cmd="$$cmd $(ARGS)"; fi; \
-	echo "$$cmd"'
+	@printf '%s\n' '$(call squote,docker run --rm $(VOLUMES) $(CLOUD_VOLUMES) $(ENV_VARS) $(PORTS) $(NETWORK) $(CONTAINER_NAME) $(CLOUD_ENV) $(WORKER_IMAGE) $(COMMAND) $(ARGS))'
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else
@@ -121,13 +118,7 @@ endif
 ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "🔍 DRY RUN - Would execute (interactive):"
-	@sh -c 'cmd="docker run --rm -it"; \
-	for part in $(VOLUMES) $(CLOUD_VOLUMES) $(ENV_VARS) $(PORTS) $(NETWORK) $(CONTAINER_NAME) $(CLOUD_ENV) $(WORKER_IMAGE); do \
-		if [ -n "$$part" ]; then cmd="$$cmd $$part"; fi; \
-	done; \
-	if [ -n "$(COMMAND)" ]; then cmd="$$cmd $(COMMAND)"; fi; \
-	if [ -n "$(ARGS)" ]; then cmd="$$cmd $(ARGS)"; fi; \
-	echo "$$cmd"'
+	@printf '%s\n' '$(call squote,docker run --rm -it $(VOLUMES) $(CLOUD_VOLUMES) $(ENV_VARS) $(PORTS) $(NETWORK) $(CONTAINER_NAME) $(CLOUD_ENV) $(WORKER_IMAGE) $(COMMAND) $(ARGS))'
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else

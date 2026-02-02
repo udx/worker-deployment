@@ -25,12 +25,10 @@ jobs:
           echo "working_dir=$working_dir" >> "$GITHUB_OUTPUT"
         id: get_working_dir
   release:
-    uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@npm-release-workflow
+    uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@master
     needs: prepare
     with:
-      release_branch: "improvements"
+      release_branch: "master"
       dist_dir: ${{ needs.prepare.outputs.working_dir }}
-      # TODO: enable after tests
-      enable_gh_release: false
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

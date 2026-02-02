@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.0] - 2026-02-02
+
+### Breaking Changes
+- Replaced `worker-config` and `worker-run` binaries with a single `worker` CLI and subcommands.
+- Commands now use `worker <subcommand>` (for example, `worker config`, `worker run`).
+
+### Added
+- New CLI subcommands: `config`, `run`, `gen`, and `images`.
+- Documentation for config/run/gen/images plus deploy configuration and CLI env docs.
+- Worker generation templates and repo scaffolding assets.
+- CI build and release scripts plus an npm release workflow.
+
+### Changed
+- Package entrypoints and release scripts updated for the unified CLI.
+- Test harness reorganized with new command coverage.
+
 ## [2.5.0] - 2024-12-02
 
 ### 🚀 Added - Network and Container Name Support

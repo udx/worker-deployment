@@ -1,15 +1,17 @@
 {
   "name": "@udx/worker-deployment",
-  "version": "2.5.0",
+  "version": "3.0.0",
   "description": "Docker container runner with YAML configuration and automatic GCP authentication (keys, Workload Identity, impersonation)",
-  "main": "init.sh",
   "bin": {
-    "worker-config": "src/lib/config.sh",
-    "worker-run": "src/lib/deploy.sh"
+    "worker": "bin/worker"
   },
   "scripts": {
-    "test": "cd test && ./index.sh",
-    "release": "./release.sh"
+    "build": "./ci/scripts/build.sh",
+    "test": "./test/index.sh",
+    "release": "./ci/scripts/release.sh"
+  },
+  "config": {
+    "dist": "dist"
   },
   "keywords": [
     "docker",
@@ -22,8 +24,11 @@
     "devops"
   ],
   "files": [
+    "bin/",
+    "lib/",
     "src/",
-    "README.md"
+    "README.md",
+    "docs/"
   ],
   "author": "UDX",
   "license": "MIT",
@@ -38,6 +43,8 @@
     "darwin",
     "linux"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "yaml": "^2.5.1"
+  },
   "devDependencies": {}
 }

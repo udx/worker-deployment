@@ -1,0 +1,7 @@
+kind: workerDeployConfig
+version: udx.io/worker-v1/deploy
+config:
+  image: "worker-nodejs:latest"
+  env:
+    NODE_ENV: "production"
+  command: "node -e \\\"console.log('hello_world')\\\""

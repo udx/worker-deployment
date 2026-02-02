@@ -21,6 +21,9 @@ include $(dir $(lastword $(MAKEFILE_LIST)))/../providers/gcp.mk
 CLOUD_VOLUMES = $(GCP_VOLUME) $(AWS_VOLUME) $(AZURE_VOLUME)
 CLOUD_ENV = $(GCP_ENV) $(AWS_ENV) $(AZURE_ENV)
 
+# Escape single quotes for safe single-quoted shell output
+squote = $(subst ','"'"',$(1))
+
 # Build credential info message
 CRED_INFO_PARTS = 
 ifneq ($(GCP_CRED_INFO),)
@@ -45,7 +48,7 @@ run:
 	@echo $(CRED_INFO)
 	@echo "Image: $(WORKER_IMAGE)"
 ifneq ($(COMMAND),)
-	@echo "Command: $(COMMAND)"
+	@echo Command: $(COMMAND)
 else
 	@echo "Command: <using container default>"
 endif
@@ -62,19 +65,7 @@ endif
 ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "🔍 DRY RUN - Would execute:"
-	@echo "docker run --rm \\"
-	@echo "    $(VOLUMES) \\"
-	@echo "    $(CLOUD_VOLUMES) \\"
-	@echo "    $(ENV_VARS) \\"
-	@echo "    $(PORTS) \\"
-	@echo "    $(NETWORK) \\"
-	@echo "    $(CONTAINER_NAME) \\"
-	@echo "    $(CLOUD_ENV) \\"
-	@echo "    $(WORKER_IMAGE) \\"
-ifneq ($(COMMAND),)
-	@echo "    $(COMMAND) \\"
-endif
-	@echo "    $(ARGS)"
+	@printf '%s\n' '$(call squote,docker run --rm $(VOLUMES) $(CLOUD_VOLUMES) $(ENV_VARS) $(PORTS) $(NETWORK) $(CONTAINER_NAME) $(CLOUD_ENV) $(WORKER_IMAGE) $(COMMAND) $(ARGS))'
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else
@@ -110,7 +101,7 @@ run-it:
 	@echo $(CRED_INFO)
 	@echo "Image: $(WORKER_IMAGE)"
 ifneq ($(COMMAND),)
-	@echo "Command: $(COMMAND)"
+	@echo Command: $(COMMAND)
 else
 	@echo "Command: <using container default>"
 endif
@@ -127,19 +118,7 @@ endif
 ifeq ($(DRY_RUN),true)
 	@echo ""
 	@echo "🔍 DRY RUN - Would execute (interactive):"
-	@echo "docker run --rm -it \\"
-	@echo "    $(VOLUMES) \\"
-	@echo "    $(CLOUD_VOLUMES) \\"
-	@echo "    $(ENV_VARS) \\"
-	@echo "    $(PORTS) \\"
-	@echo "    $(NETWORK) \\"
-	@echo "    $(CONTAINER_NAME) \\"
-	@echo "    $(CLOUD_ENV) \\"
-	@echo "    $(WORKER_IMAGE) \\"
-ifneq ($(COMMAND),)
-	@echo "    $(COMMAND) \\"
-endif
-	@echo "    $(ARGS)"
+	@printf '%s\n' '$(call squote,docker run --rm -it $(VOLUMES) $(CLOUD_VOLUMES) $(ENV_VARS) $(PORTS) $(NETWORK) $(CONTAINER_NAME) $(CLOUD_ENV) $(WORKER_IMAGE) $(COMMAND) $(ARGS))'
 	@echo ""
 	@echo "✅ Dry run completed. Remove --dry-run to execute."
 else

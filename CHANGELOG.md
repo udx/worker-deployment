@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.4] - 2026-02-05
+
+### Fixed
+
+- Fix YAML key listing to output real newlines so env vars are passed correctly.
+- Quote command display in deploy make target to avoid shell parse errors.
+- Update default deploy config and docs to use `command` + `args`.
+
 ## [3.0.3] - 2026-02-05
 
 ### Changed

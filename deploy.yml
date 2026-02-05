@@ -4,4 +4,7 @@ config:
   image: "worker-nodejs:latest"
   env:
     NODE_ENV: "production"
-  command: "node -e \\\"console.log('hello_world')\\\""
+  command: "node"
+  args:
+    - "-e"
+    - "console.log('hello_world')"

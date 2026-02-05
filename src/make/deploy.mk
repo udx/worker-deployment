@@ -48,7 +48,7 @@ run:
 	@echo $(CRED_INFO)
 	@echo "Image: $(WORKER_IMAGE)"
 ifneq ($(COMMAND),)
-	@echo Command: $(COMMAND)
+	@printf '%s\n' 'Command: $(call squote,$(COMMAND))'
 else
 	@echo "Command: <using container default>"
 endif
@@ -101,7 +101,7 @@ run-it:
 	@echo $(CRED_INFO)
 	@echo "Image: $(WORKER_IMAGE)"
 ifneq ($(COMMAND),)
-	@echo Command: $(COMMAND)
+	@printf '%s\n' 'Command: $(call squote,$(COMMAND))'
 else
 	@echo "Command: <using container default>"
 endif

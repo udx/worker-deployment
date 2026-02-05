@@ -11,7 +11,10 @@ config:
     - "./:/workspace"
   env:
     DEBUG: "true"
-  command: "worker run my-task"
+  command: "worker"
+  args:
+    - "run"
+    - "my-task"
 ```
 
 Using container default command:
@@ -44,5 +47,8 @@ config:
     email: "worker-sa@my-project.iam.gserviceaccount.com"
   volumes:
     - "./:/workspace"
-  command: "worker deploy --env=staging"
+  command: "worker"
+  args:
+    - "deploy"
+    - "--env=staging"
 ```

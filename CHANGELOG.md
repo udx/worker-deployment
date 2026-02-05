@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.3] - 2026-02-05
+
+### Changed
+
+- Change release branch from `master` to `latest` in npm release workflow
+
 ## [3.0.2] - 2026-02-05
 
 ### Removed

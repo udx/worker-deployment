@@ -12,7 +12,7 @@ jobs:
   release:
     uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@master
     with:
-      release_branch: "master"
+      release_branch: "latest"
       dist_dir: "."
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}

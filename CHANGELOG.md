@@ -2,9 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [3.0.2] - 2026-02-05
+
+### Removed
+
+- Removed `gh_token` from npm release workflow
+
 ## [3.0.1] - 2026-02-05
 
-### Bump version
+### Fixed
 
 - Bump version to 3.0.1 to resolve immutable tag issue
 

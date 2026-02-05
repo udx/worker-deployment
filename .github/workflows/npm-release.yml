@@ -16,4 +16,3 @@ jobs:
       dist_dir: "."
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
-      gh_token: ${{ secrets.GH_TOKEN }}

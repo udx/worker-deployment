@@ -9,27 +9,11 @@ permissions:
   contents: write
 
 jobs:
-  prepare:
-    runs-on: ubuntu-latest
-    outputs:
-      working_dir: ${{ steps.get_working_dir.outputs.working_dir }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      - name: Get working directory
-        run: |
-          working_dir=$(node -e 'console.log(require("./package.json").config.dist)')
-
-          echo "Working directory: $working_dir"
-
-          echo "working_dir=$working_dir" >> "$GITHUB_OUTPUT"
-        id: get_working_dir
   release:
     uses: udx/reusable-workflows/.github/workflows/npm-release-ops.yml@master
-    needs: prepare
     with:
       release_branch: "master"
-      dist_dir: ${{ needs.prepare.outputs.working_dir }}
+      dist_dir: "."
     secrets:
       slack_webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
       gh_token: ${{ secrets.GH_TOKEN }}
